@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: openstreetlifting_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-appuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-apppassword}
+      POSTGRES_DB: ${DB_NAME:-appdb}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-appuser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres_data:

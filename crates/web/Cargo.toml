@@ -1,0 +1,14 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+storage = { path = "../storage/" }
+actix-web = "4.11.0"
+anyhow = "1.0.100"
+dotenvy = "0.15.7"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.48.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
