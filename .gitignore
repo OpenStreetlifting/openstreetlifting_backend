@@ -1,2 +1,5 @@
 /target
 .env
+DEPLOYMENT.md
+API_AUTH.md
+backups/

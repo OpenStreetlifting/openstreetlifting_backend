@@ -7,9 +7,11 @@ use storage::Database;
 mod config;
 mod error;
 mod handlers;
+mod middleware;
 mod routes;
 
 use config::Config;
+use middleware::auth::ApiKeys;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,6 +40,7 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed to run migrations")?;
 
     let db_data = web::Data::new(db);
+    let api_keys = web::Data::new(ApiKeys::from_comma_separated(&config.api_keys));
 
     let bind_address = format!("{}:{}", config.host, config.port);
     tracing::info!("Starting server at http://{}", bind_address);
@@ -45,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(db_data.clone())
+            .app_data(api_keys.clone())
             .configure(routes::configure)
     })
     .bind(&bind_address)?
