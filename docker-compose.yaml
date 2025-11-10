@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: openstreetlifting_backend
+    container_name: openstreetlifting_web_api
     restart: unless-stopped
     env_file:
       - .env

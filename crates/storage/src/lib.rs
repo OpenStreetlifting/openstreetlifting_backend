@@ -1,7 +1,7 @@
 use sqlx::postgres::{PgPool, PgPoolOptions};
 
 pub mod error;
-pub mod model;
+pub mod models;
 
 use error::Result;
 

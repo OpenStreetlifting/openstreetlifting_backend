@@ -1,0 +1,27 @@
+pub mod athlete;
+pub mod athlete_social;
+pub mod attempt;
+pub mod category;
+pub mod competition;
+pub mod competition_group;
+pub mod competition_participant;
+pub mod federation;
+pub mod lift;
+pub mod movement;
+pub mod record;
+pub mod rulebook;
+pub mod social;
+
+pub use athlete::*;
+pub use athlete_social::*;
+pub use attempt::*;
+pub use category::*;
+pub use competition::*;
+pub use competition_group::*;
+pub use competition_participant::*;
+pub use federation::*;
+pub use lift::*;
+pub use movement::*;
+pub use record::*;
+pub use rulebook::*;
+pub use social::*;
