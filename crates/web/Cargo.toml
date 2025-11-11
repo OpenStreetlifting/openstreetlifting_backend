@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 storage = { path = "../storage/" }
+actix-cors = "0.7"
 actix-web = "4.11.0"
 actix-web-httpauth = "0.8.2"
 anyhow = "1.0.100"

@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{App, HttpServer, web};
 use anyhow::Context;
 use storage::Database;
@@ -118,7 +119,15 @@ async fn main() -> anyhow::Result<()> {
     let openapi = ApiDoc::openapi();
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .supports_credentials()
+            .max_age(3600);
+
         App::new()
+            .wrap(cors)
             .app_data(db_data.clone())
             .app_data(api_keys.clone())
             .service(
