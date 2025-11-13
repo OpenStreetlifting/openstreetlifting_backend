@@ -6,17 +6,17 @@ use storage::models::Competition;
 use crate::middleware::auth::api_key_validator;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
+    let auth = HttpAuthentication::bearer(api_key_validator);
+
     cfg.service(
         web::scope("/competitions")
+            // Public read-only endpoints
             .route("", web::get().to(list_competitions))
             .route("/{id}", web::get().to(get_competition))
-            .service(
-                web::scope("/admin")
-                    .wrap(HttpAuthentication::bearer(api_key_validator))
-                    .route("", web::post().to(create_competition))
-                    .route("/{id}", web::put().to(update_competition))
-                    .route("/{id}", web::delete().to(delete_competition)),
-            ),
+            // Protected write endpoints
+            .route("", web::post().to(create_competition).wrap(auth.clone()))
+            .route("/{id}", web::put().to(update_competition).wrap(auth.clone()))
+            .route("/{id}", web::delete().to(delete_competition).wrap(auth)),
     );
 }
 
@@ -50,7 +50,7 @@ pub async fn get_competition(path: web::Path<i32>) -> HttpResponse {
 
 #[utoipa::path(
     post,
-    path = "/api/competitions/admin",
+    path = "/api/competitions",
     security(
         ("bearer_auth" = [])
     ),
@@ -58,7 +58,7 @@ pub async fn get_competition(path: web::Path<i32>) -> HttpResponse {
         (status = 201, description = "Competition created"),
         (status = 401, description = "Unauthorized")
     ),
-    tag = "admin"
+    tag = "competitions"
 )]
 pub async fn create_competition() -> HttpResponse {
     HttpResponse::Created().json(json!({ "message": "Competition created" }))
@@ -66,7 +66,7 @@ pub async fn create_competition() -> HttpResponse {
 
 #[utoipa::path(
     put,
-    path = "/api/competitions/admin/{id}",
+    path = "/api/competitions/{id}",
     params(
         ("id" = i32, Path, description = "Competition ID")
     ),
@@ -77,7 +77,7 @@ pub async fn create_competition() -> HttpResponse {
         (status = 200, description = "Competition updated"),
         (status = 401, description = "Unauthorized")
     ),
-    tag = "admin"
+    tag = "competitions"
 )]
 pub async fn update_competition(path: web::Path<i32>) -> HttpResponse {
     let id = path.into_inner();
@@ -86,7 +86,7 @@ pub async fn update_competition(path: web::Path<i32>) -> HttpResponse {
 
 #[utoipa::path(
     delete,
-    path = "/api/competitions/admin/{id}",
+    path = "/api/competitions/{id}",
     params(
         ("id" = i32, Path, description = "Competition ID")
     ),
@@ -97,7 +97,7 @@ pub async fn update_competition(path: web::Path<i32>) -> HttpResponse {
         (status = 200, description = "Competition deleted"),
         (status = 401, description = "Unauthorized")
     ),
-    tag = "admin"
+    tag = "competitions"
 )]
 pub async fn delete_competition(path: web::Path<i32>) -> HttpResponse {
     let id = path.into_inner();
