@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use serde_json::json;
 use storage::models::Competition;
@@ -10,12 +10,13 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
     cfg.service(
         web::scope("/competitions")
-            // Public read-only endpoints
             .route("", web::get().to(list_competitions))
             .route("/{id}", web::get().to(get_competition))
-            // Protected write endpoints
             .route("", web::post().to(create_competition).wrap(auth.clone()))
-            .route("/{id}", web::put().to(update_competition).wrap(auth.clone()))
+            .route(
+                "/{id}",
+                web::put().to(update_competition).wrap(auth.clone()),
+            )
             .route("/{id}", web::delete().to(delete_competition).wrap(auth)),
     );
 }
