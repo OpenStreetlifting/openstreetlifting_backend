@@ -17,49 +17,55 @@ env:
   REGISTRY: docker.io
 
 jobs:
-  quality-checks:
+  verify-ci:
+    name: Verify CI passed
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          components: rustfmt, clippy
+      - name: Check CI status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking if CI passed on main branch..."
 
-      - name: Check code formatting
-        run: cargo fmt --all -- --check
+          # Get the latest commit on main
+          MAIN_SHA=$(git rev-parse origin/main)
+          echo "Latest main commit: $MAIN_SHA"
 
-      - name: Run clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+          # Check if we're releasing from main
+          CURRENT_SHA=$(git rev-parse HEAD)
+          if [ "$CURRENT_SHA" != "$MAIN_SHA" ]; then
+            echo "Warning: Current commit is not the latest on main"
+            echo "Current: $CURRENT_SHA"
+            echo "Main: $MAIN_SHA"
+          fi
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          # Wait for CI to complete and check status
+          gh run list --workflow=ci.yml --branch=main --limit=1 --json conclusion,status,headSha --jq '.[0]' > ci-status.json
 
-      - name: Set up Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+          CI_SHA=$(jq -r '.headSha' ci-status.json)
+          CI_STATUS=$(jq -r '.status' ci-status.json)
+          CI_CONCLUSION=$(jq -r '.conclusion' ci-status.json)
 
-      - name: Run tests
-        run: cargo test --workspace --all-features
+          echo "CI Status: $CI_STATUS"
+          echo "CI Conclusion: $CI_CONCLUSION"
 
-  build-verification:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          if [ "$CI_STATUS" != "completed" ]; then
+            echo "Error: CI is still running or has not started. Wait for CI to complete."
+            exit 1
+          fi
 
-      - name: Set up Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+          if [ "$CI_CONCLUSION" != "success" ]; then
+            echo "Error: CI did not pass. Fix CI errors before releasing."
+            exit 1
+          fi
 
-      - name: Build release binary
-        run: cargo build --release --locked --workspace
+          echo "✓ CI passed successfully on main"
 
   release:
-    needs: [quality-checks, test, build-verification]
+    needs: [verify-ci]
     runs-on: ubuntu-latest
     permissions:
       contents: write
