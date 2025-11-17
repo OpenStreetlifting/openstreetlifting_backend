@@ -1,4 +1,4 @@
-use actix_web::{dev::ServiceRequest, error::ErrorUnauthorized, Error};
+use actix_web::{Error, dev::ServiceRequest, error::ErrorUnauthorized};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use std::collections::HashSet;
 
