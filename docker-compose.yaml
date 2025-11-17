@@ -30,9 +30,9 @@ services:
     env_file:
       - .env
     environment:
-      # Docker-specific overrides (container networking)
       DB_HOST: postgres
       HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
     ports:
       - "${PORT}:8080"
     networks:
