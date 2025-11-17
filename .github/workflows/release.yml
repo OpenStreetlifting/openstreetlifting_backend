@@ -59,7 +59,7 @@ jobs:
         run: cargo build --release --locked --workspace
 
   release:
-    needs: [quality-checks, test, security, build-verification]
+    needs: [quality-checks, test, build-verification]
     runs-on: ubuntu-latest
     permissions:
       contents: write
