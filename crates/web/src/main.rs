@@ -17,14 +17,17 @@ use middleware::auth::ApiKeys;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        routes::competitions::list_competitions,
-        routes::competitions::get_competition,
-        routes::competitions::create_competition,
-        routes::competitions::update_competition,
-        routes::competitions::delete_competition,
+        handlers::competitions::list_competitions,
+        handlers::competitions::get_competition,
+        handlers::competitions::create_competition,
+        handlers::competitions::update_competition,
+        handlers::competitions::delete_competition,
     ),
     components(
         schemas(
+            storage::dto::competition::CreateCompetitionRequest,
+            storage::dto::competition::UpdateCompetitionRequest,
+            storage::dto::competition::CompetitionResponse,
             storage::models::Competition,
             storage::models::Athlete,
             storage::models::Category,
@@ -42,7 +45,6 @@ use middleware::auth::ApiKeys;
     ),
     tags(
         (name = "competitions", description = "Public competition endpoints"),
-        (name = "admin", description = "Protected admin endpoints (requires API key)")
     ),
     modifiers(&SecurityAddon)
 )]
@@ -68,8 +70,6 @@ impl utoipa::Modify for SecurityAddon {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load .env file in development, silently ignore if not present (e.g., in Docker)
-    // This is the idiomatic pattern for Rust apps that work in both dev and production
     dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()

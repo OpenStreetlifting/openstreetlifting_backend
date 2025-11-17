@@ -10,3 +10,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 utoipa = { version = "5.3.1", features = ["chrono", "decimal"] }
 chrono = { version = "0.4", features = ["serde"] }
 rust_decimal = { version = "1.38", features = ["serde"] }
+validator = { version = "0.18", features = ["derive"] }

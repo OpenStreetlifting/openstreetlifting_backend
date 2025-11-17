@@ -1,7 +1,9 @@
 use sqlx::postgres::{PgPool, PgPoolOptions};
 
+pub mod dto;
 pub mod error;
 pub mod models;
+pub mod repository;
 
 use error::Result;
 
@@ -23,5 +25,10 @@ impl Database {
     pub async fn run_migrations(&self) -> Result<()> {
         sqlx::migrate!("./migrations").run(&self.pool).await?;
         Ok(())
+    }
+
+    /// Get a reference to the database pool
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
     }
 }
