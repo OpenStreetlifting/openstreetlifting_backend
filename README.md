@@ -1,4 +1,4 @@
-# OpenStreetLifting Backend
+# OpenStreetlifting Backend
 
 ## Quick Start
 
