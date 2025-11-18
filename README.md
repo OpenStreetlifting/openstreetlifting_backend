@@ -32,6 +32,14 @@ Configuration is managed through environment variables. See `.env.example` for a
 | `PORT`         | Server port                  | `8080`             |
 | `API_KEYS`     | Comma-separated API keys     | Optional           |
 
+## SQLX Preparation
+
+To work with compile time hints from SQLX, but without a live database connection, you can prepare the SQL queries with
+
+```sh
+cargo sqlx prepare --workspace
+```
+
 ## API Documentation
 
 Interactive API documentation is available via Swagger UI:

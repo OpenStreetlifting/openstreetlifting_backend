@@ -6,10 +6,18 @@ use validator::Validate;
 /// Request payload for creating a new competition
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 pub struct CreateCompetitionRequest {
-    #[validate(length(min = 1, max = 255, message = "Name must be between 1 and 255 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 255,
+        message = "Name must be between 1 and 255 characters"
+    ))]
     pub name: String,
 
-    #[validate(length(min = 1, max = 255, message = "Slug must be between 1 and 255 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 255,
+        message = "Slug must be between 1 and 255 characters"
+    ))]
     #[validate(custom(function = "validate_slug"))]
     pub slug: String,
 
@@ -128,7 +136,8 @@ impl CreateCompetitionRequest {
         }
 
         if let Some(judges) = self.number_of_judge
-            && judges != 1 && judges != 3
+            && judges != 1
+            && judges != 3
         {
             return Err("Number of judges must be 1 or 3");
         }

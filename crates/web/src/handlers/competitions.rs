@@ -1,8 +1,8 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use storage::{
+    Database,
     dto::competition::{CompetitionResponse, CreateCompetitionRequest, UpdateCompetitionRequest},
     repository::competition::CompetitionRepository,
-    Database,
 };
 use validator::Validate;
 

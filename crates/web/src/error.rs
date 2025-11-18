@@ -1,4 +1,4 @@
-use actix_web::{error::ResponseError, http::StatusCode, HttpResponse};
+use actix_web::{HttpResponse, error::ResponseError, http::StatusCode};
 use serde_json::json;
 use std::fmt;
 use storage::error::StorageError;
@@ -64,7 +64,10 @@ impl ResponseError for WebError {
                             format!(
                                 "{}: {}",
                                 field,
-                                e.message.as_ref().map(|m| m.to_string()).unwrap_or_else(|| e.code.to_string())
+                                e.message
+                                    .as_ref()
+                                    .map(|m| m.to_string())
+                                    .unwrap_or_else(|| e.code.to_string())
                             )
                         })
                     })
