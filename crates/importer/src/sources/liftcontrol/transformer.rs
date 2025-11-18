@@ -210,8 +210,7 @@ impl<'a> LiftControlTransformer<'a> {
         let bodyweight = athlete_data
             .athlete_info
             .pesee
-            .map(|w| Decimal::from_f64_retain(w))
-            .flatten();
+            .and_then(Decimal::from_f64_retain);
         let ris_score = Decimal::from_f64_retain(athlete_data.ris);
 
         let participant_id = sqlx::query_scalar!(
@@ -378,7 +377,7 @@ impl<'a> LiftControlTransformer<'a> {
 
         let passing_judges = match &attempt.decision_rep {
             DecisionRep::Number(n) => count_passing_judges(*n),
-            DecisionRep::String(s) => s.parse::<i32>().ok().map(count_passing_judges).flatten(),
+            DecisionRep::String(s) => s.parse::<i32>().ok().and_then(count_passing_judges),
         };
 
         let weight = Decimal::from_f64_retain(attempt.charge)
