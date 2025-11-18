@@ -17,7 +17,7 @@ impl LiftControlClient {
         }
     }
 
-    pub async fn fetch_live_tableau_general(&self, event_slug: &str) -> Result<ApiResponse> {
+    pub async fn fetch_live_general_table(&self, event_slug: &str) -> Result<ApiResponse> {
         let url = format!(
             "{}/evenements-liftcontrol/get-live-data/tableau-general/{}",
             self.base_url, event_slug

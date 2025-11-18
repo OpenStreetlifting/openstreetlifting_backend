@@ -29,7 +29,7 @@ impl Default for LiftControlImporter {
 #[async_trait::async_trait]
 impl CompetitionImporter for LiftControlImporter {
     async fn import(&self, event_slug: &str, context: &ImportContext) -> Result<()> {
-        let api_response = self.client.fetch_live_tableau_general(event_slug).await?;
+        let api_response = self.client.fetch_live_general_table(event_slug).await?;
         let transformer = LiftControlTransformer::new(&context.pool);
         transformer.import_competition(api_response).await?;
         Ok(())

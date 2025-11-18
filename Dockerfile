@@ -19,6 +19,7 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --locked --recipe-path recipe.json
 COPY . .
 RUN cargo build --release --locked --bin web
+RUN cargo build --release --locked --bin import
 
 FROM debian:bookworm-slim
 
@@ -33,6 +34,7 @@ RUN useradd -m -u 1001 appuser
 WORKDIR /app
 
 COPY --from=builder /app/target/release/web /app/web
+COPY --from=builder /app/target/release/import /app/import
 
 COPY --from=builder /app/crates/storage/migrations /app/migrations
 

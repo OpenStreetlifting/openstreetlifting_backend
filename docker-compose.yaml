@@ -41,6 +41,24 @@ services:
       postgres:
         condition: service_healthy
 
+  importer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openstreetlifting_importer
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+    entrypoint: ["/app/import"]
+
 volumes:
   postgres_data:
 

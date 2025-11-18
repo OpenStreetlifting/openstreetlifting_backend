@@ -51,13 +51,45 @@ impl CompetitionImporter for CsvImporter {
 }
 ```
 
-## Running Examples
+## CLI Usage
+
+### Local Development
 
 ```bash
-# Set DATABASE_URL
-export DATABASE_URL="postgresql://user:password@localhost/openstreetlifting"
+cargo run --bin import -- liftcontrol <event-slug>
+```
 
-# Run LiftControl importer
+Example:
+```bash
+DATABASE_URL=postgresql://appuser:apppassword@localhost:5432/appdb \
+  cargo run --bin import -- liftcontrol annecy-4-lift-2025-dimanche-matin-39
+```
+
+With verbose logging:
+```bash
+cargo run --bin import -- --verbose liftcontrol annecy-4-lift-2025-dimanche-matin-39
+```
+
+### Docker Compose
+
+```bash
+docker compose run --rm importer liftcontrol <event-slug>
+```
+
+Example:
+```bash
+docker compose run --rm importer liftcontrol annecy-4-lift-2025-dimanche-matin-39
+```
+
+### Environment Variables
+
+- `DATABASE_URL`: PostgreSQL connection string (required)
+- `RUST_LOG`: Override log level (optional, defaults to info)
+
+### Running Examples
+
+```bash
+export DATABASE_URL="postgresql://user:password@localhost/openstreetlifting"
 cargo run --example import_liftcontrol -- event-slug-here
 ```
 
