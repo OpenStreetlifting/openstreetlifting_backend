@@ -171,47 +171,55 @@ CREATE INDEX "records_index_2" ON "records" ("category_id", "movement_id");
 CREATE UNIQUE INDEX "records_index_3" ON "records" ("record_type", "category_id", "movement_id", "gender");
 
 -- Foreign Keys
+-- Competition Groups: Categories are reference data (RESTRICT), Competitions own their groups (CASCADE)
 ALTER TABLE "competition_groups"
-ADD FOREIGN KEY("category_id") REFERENCES "categories"("category_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ADD FOREIGN KEY("category_id") REFERENCES "categories"("category_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "competition_groups"
-ADD FOREIGN KEY("competition_id") REFERENCES "competitions"("competition_id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ADD FOREIGN KEY("competition_id") REFERENCES "competitions"("competition_id") ON UPDATE CASCADE ON DELETE CASCADE;
+
+-- Competition Participants: Groups own participants (CASCADE), Athletes are reference data (RESTRICT)
+ALTER TABLE "competition_participants"
+ADD FOREIGN KEY("group_id") REFERENCES "competition_groups"("group_id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "competition_participants"
-ADD FOREIGN KEY("group_id") REFERENCES "competition_groups"("group_id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
-ALTER TABLE "competition_participants"
-ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- Lifts: Participants own their lifts (CASCADE), Movements are reference data (RESTRICT)
+ALTER TABLE "lifts"
+ADD FOREIGN KEY("participant_id") REFERENCES "competition_participants"("participant_id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "lifts"
-ADD FOREIGN KEY("participant_id") REFERENCES "competition_participants"("participant_id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ADD FOREIGN KEY("movement_id") REFERENCES "movements"("movement_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
-ALTER TABLE "lifts"
-ADD FOREIGN KEY("movement_id") REFERENCES "movements"("movement_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
-
+-- Attempts: Lifts own their attempts (CASCADE)
 ALTER TABLE "attempts"
-ADD FOREIGN KEY("lift_id") REFERENCES "lifts"("lift_id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ADD FOREIGN KEY("lift_id") REFERENCES "lifts"("lift_id") ON UPDATE CASCADE ON DELETE CASCADE;
 
+-- Competitions: Federations are reference data (RESTRICT)
 ALTER TABLE "competitions"
-ADD FOREIGN KEY("federation_id") REFERENCES "federations"("federation_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ADD FOREIGN KEY("federation_id") REFERENCES "federations"("federation_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
+-- Federations: Rulebooks are reference data, but nullable so SET NULL is more appropriate
 ALTER TABLE "federations"
-ADD FOREIGN KEY("rulebook_id") REFERENCES "rulebooks"("rulebook_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ADD FOREIGN KEY("rulebook_id") REFERENCES "rulebooks"("rulebook_id") ON UPDATE CASCADE ON DELETE SET NULL;
+
+-- Athlete Socials: Athletes own their social accounts (CASCADE), Social platforms are reference data (RESTRICT)
+ALTER TABLE "athlete_socials"
+ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "athlete_socials"
-ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ADD FOREIGN KEY("social_id") REFERENCES "socials"("social_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
-ALTER TABLE "athlete_socials"
-ADD FOREIGN KEY("social_id") REFERENCES "socials"("social_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- Records: All references are to immutable historical data (RESTRICT to preserve data integrity)
+ALTER TABLE "records"
+ADD FOREIGN KEY("category_id") REFERENCES "categories"("category_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "records"
-ADD FOREIGN KEY("category_id") REFERENCES "categories"("category_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ADD FOREIGN KEY("movement_id") REFERENCES "movements"("movement_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "records"
-ADD FOREIGN KEY("movement_id") REFERENCES "movements"("movement_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "records"
-ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
-
-ALTER TABLE "records"
-ADD FOREIGN KEY("competition_id") REFERENCES "competitions"("competition_id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ADD FOREIGN KEY("competition_id") REFERENCES "competitions"("competition_id") ON UPDATE CASCADE ON DELETE RESTRICT;

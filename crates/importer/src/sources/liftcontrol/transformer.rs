@@ -5,6 +5,7 @@ use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::str::FromStr;
+use storage::models::NormalizedAthleteName;
 
 pub struct LiftControlTransformer<'a> {
     pool: &'a PgPool,
@@ -265,13 +266,20 @@ impl<'a> LiftControlTransformer<'a> {
     ) -> Result<i32> {
         let gender = map_gender(&category_info.genre);
 
+        // Create normalized name to ensure consistent ordering and prevent duplicates
+        // like "John Smith" and "Smith John" from being treated as different athletes
+        let normalized_name =
+            NormalizedAthleteName::new(&athlete_info.first_name, &athlete_info.last_name);
+        let (db_first_name, db_last_name) = normalized_name.as_database_tuple();
+
+        // Check using normalized names
         let existing = sqlx::query_scalar!(
             r#"
             SELECT athlete_id FROM athletes
             WHERE first_name = $1 AND last_name = $2 AND gender = $3 AND country = $4
             "#,
-            athlete_info.first_name,
-            athlete_info.last_name,
+            db_first_name,
+            db_last_name,
             gender,
             "FR"
         )
@@ -282,14 +290,15 @@ impl<'a> LiftControlTransformer<'a> {
             return Ok(id);
         }
 
+        // Insert using normalized names
         let athlete_id = sqlx::query_scalar!(
             r#"
             INSERT INTO athletes (first_name, last_name, gender, country)
             VALUES ($1, $2, $3, $4)
             RETURNING athlete_id
             "#,
-            athlete_info.first_name,
-            athlete_info.last_name,
+            db_first_name,
+            db_last_name,
             gender,
             "FR"
         )
