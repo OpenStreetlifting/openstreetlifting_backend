@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO competition_groups (competition_id, category_id, name)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (competition_id, category_id, name)\n            DO UPDATE SET name = EXCLUDED.name\n            RETURNING group_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "group_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "da04b0ee7e32d3855e4f0ac7cde8a094ee5824c83d950e22b5cd4f0209676adb"
+}

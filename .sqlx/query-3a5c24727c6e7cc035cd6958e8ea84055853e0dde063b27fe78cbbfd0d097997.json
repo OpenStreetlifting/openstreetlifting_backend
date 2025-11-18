@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO competitions (name, slug, status, federation_id, start_date, end_date)\n            VALUES ($1, $2, $3, $4, $5, $5)\n            ON CONFLICT (slug)\n            DO UPDATE SET\n                name = EXCLUDED.name,\n                status = EXCLUDED.status\n            RETURNING competition_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "competition_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3a5c24727c6e7cc035cd6958e8ea84055853e0dde063b27fe78cbbfd0d097997"
+}

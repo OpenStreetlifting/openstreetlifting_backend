@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO categories (name, gender, weight_class_min, weight_class_max)\n            VALUES ($1, $2, $3, $4)\n            RETURNING category_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "category_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f73558b5021fada3ecd29855af41d83f7d70811a56eea2d190aba4f78220f759"
+}
