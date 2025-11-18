@@ -1,15 +1,16 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Competition {
-    pub competition_id: i32,
+    pub competition_id: Uuid,
     pub name: String,
     pub created_at: chrono::NaiveDateTime,
     pub slug: String,
     pub status: String,
-    pub federation_id: i32,
+    pub federation_id: Uuid,
     pub venue: Option<String>,
     pub city: Option<String>,
     pub country: Option<String>,

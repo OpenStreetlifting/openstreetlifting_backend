@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 use validator::Validate;
 
 /// Request payload for creating a new competition
@@ -25,7 +26,7 @@ pub struct CreateCompetitionRequest {
     #[serde(default = "default_status")]
     pub status: String,
 
-    pub federation_id: i32,
+    pub federation_id: Uuid,
 
     #[validate(length(max = 255))]
     pub venue: Option<String>,
@@ -57,7 +58,7 @@ pub struct UpdateCompetitionRequest {
     #[validate(custom(function = "validate_status"))]
     pub status: Option<String>,
 
-    pub federation_id: Option<i32>,
+    pub federation_id: Option<Uuid>,
 
     #[validate(length(max = 255))]
     pub venue: Option<String>,
@@ -78,12 +79,12 @@ pub struct UpdateCompetitionRequest {
 /// Response containing competition details
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CompetitionResponse {
-    pub competition_id: i32,
+    pub competition_id: Uuid,
     pub name: String,
     pub created_at: chrono::NaiveDateTime,
     pub slug: String,
     pub status: String,
-    pub federation_id: i32,
+    pub federation_id: Uuid,
     pub venue: Option<String>,
     pub city: Option<String>,
     pub country: Option<String>,

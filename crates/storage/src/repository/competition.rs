@@ -1,4 +1,5 @@
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::dto::competition::CreateCompetitionRequest;
 use crate::error::{Result, StorageError};
@@ -33,7 +34,7 @@ impl<'a> CompetitionRepository<'a> {
     }
 
     /// Get a competition by ID
-    pub async fn find_by_id(&self, id: i32) -> Result<Competition> {
+    pub async fn find_by_id(&self, id: Uuid) -> Result<Competition> {
         let competition = sqlx::query_as!(
             Competition,
             r#"
@@ -112,7 +113,7 @@ impl<'a> CompetitionRepository<'a> {
     /// Update an existing competition
     pub async fn update(
         &self,
-        id: i32,
+        id: Uuid,
         existing: &Competition,
         req: &crate::dto::competition::UpdateCompetitionRequest,
     ) -> Result<Competition> {
@@ -167,7 +168,7 @@ impl<'a> CompetitionRepository<'a> {
     }
 
     /// Delete a competition by ID
-    pub async fn delete(&self, id: i32) -> Result<()> {
+    pub async fn delete(&self, id: Uuid) -> Result<()> {
         let result = sqlx::query!(
             r#"
             DELETE FROM competitions

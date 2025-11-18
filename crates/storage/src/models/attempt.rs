@@ -2,11 +2,12 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Attempt {
-    pub attempt_id: i32,
-    pub lift_id: i32,
+    pub attempt_id: Uuid,
+    pub lift_id: Uuid,
     pub attempt_number: i16,
     pub weight: Decimal,
     pub is_successful: bool,

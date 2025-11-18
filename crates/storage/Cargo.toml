@@ -7,8 +7,8 @@ edition = "2024"
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "migrate", "chrono", "rust_decimal"] }
 thiserror = "2.0.17"
 serde = { version = "1.0.228", features = ["derive"] }
-utoipa = { version = "5.3.1", features = ["chrono", "decimal"] }
+utoipa = { version = "5.3.1", features = ["chrono", "decimal", "uuid"] }
 chrono = { version = "0.4", features = ["serde"] }
 rust_decimal = { version = "1.38", features = ["serde"] }
 validator = { version = "0.18", features = ["derive"] }
-uuid = "1.18.1"
+uuid = { version = "1.18.1", features = ["serde", "v4"] }

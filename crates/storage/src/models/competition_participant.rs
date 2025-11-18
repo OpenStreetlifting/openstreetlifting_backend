@@ -2,12 +2,13 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct CompetitionParticipant {
-    pub participant_id: i32,
-    pub group_id: i32,
-    pub athlete_id: i32,
+    pub participant_id: Uuid,
+    pub group_id: Uuid,
+    pub athlete_id: Uuid,
     pub bodyweight: Option<Decimal>,
     pub rank: Option<i32>,
     pub is_disqualified: bool,

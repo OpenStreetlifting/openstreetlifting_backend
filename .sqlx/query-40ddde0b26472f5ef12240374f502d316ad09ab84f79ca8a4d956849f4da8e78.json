@@ -6,7 +6,7 @@
       {
         "ordinal": 0,
         "name": "competition_id",
-        "type_info": "Int4"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 1,
@@ -31,7 +31,7 @@
       {
         "ordinal": 5,
         "name": "federation_id",
-        "type_info": "Int4"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 6,
@@ -69,7 +69,7 @@
         "Varchar",
         "Varchar",
         "Varchar",
-        "Int4",
+        "Uuid",
         "Varchar",
         "Varchar",
         "Varchar",

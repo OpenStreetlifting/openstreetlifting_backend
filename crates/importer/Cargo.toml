@@ -17,6 +17,7 @@ sqlx = { version = "0.8.6", features = [
   "postgres",
   "chrono",
   "rust_decimal",
+  "uuid",
 ] }
 storage = { path = "../storage" }
 thiserror = "2.0.17"

@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO athletes (first_name, last_name, gender, country)\n            VALUES ($1, $2, $3, $4)\n            RETURNING athlete_id as \"athlete_id: Uuid\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "athlete_id: Uuid",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "41570cc571d3ac0258ae78f0f96d334498727f95ab853f515e12be2f16ddb462"
+}

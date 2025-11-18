@@ -4,6 +4,7 @@ use storage::{
     dto::competition::{CompetitionResponse, CreateCompetitionRequest, UpdateCompetitionRequest},
     repository::competition::CompetitionRepository,
 };
+use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{WebError, WebResult};
@@ -34,7 +35,7 @@ pub async fn list_competitions(db: web::Data<Database>) -> WebResult<HttpRespons
     get,
     path = "/api/competitions/{id}",
     params(
-        ("id" = i32, Path, description = "Competition ID")
+        ("id" = Uuid, Path, description = "Competition ID")
     ),
     responses(
         (status = 200, description = "Competition found", body = CompetitionResponse),
@@ -44,7 +45,7 @@ pub async fn list_competitions(db: web::Data<Database>) -> WebResult<HttpRespons
 )]
 pub async fn get_competition(
     db: web::Data<Database>,
-    path: web::Path<i32>,
+    path: web::Path<Uuid>,
 ) -> WebResult<HttpResponse> {
     let id = path.into_inner();
     let repo = CompetitionRepository::new(db.pool());
@@ -93,7 +94,7 @@ pub async fn create_competition(
     put,
     path = "/api/competitions/{id}",
     params(
-        ("id" = i32, Path, description = "Competition ID")
+        ("id" = Uuid, Path, description = "Competition ID")
     ),
     request_body = UpdateCompetitionRequest,
     security(
@@ -110,7 +111,7 @@ pub async fn create_competition(
 )]
 pub async fn update_competition(
     db: web::Data<Database>,
-    path: web::Path<i32>,
+    path: web::Path<Uuid>,
     payload: web::Json<UpdateCompetitionRequest>,
 ) -> WebResult<HttpResponse> {
     let id = path.into_inner();
@@ -135,7 +136,7 @@ pub async fn update_competition(
     delete,
     path = "/api/competitions/{id}",
     params(
-        ("id" = i32, Path, description = "Competition ID")
+        ("id" = Uuid, Path, description = "Competition ID")
     ),
     security(
         ("bearer_auth" = [])
@@ -149,7 +150,7 @@ pub async fn update_competition(
 )]
 pub async fn delete_competition(
     db: web::Data<Database>,
-    path: web::Path<i32>,
+    path: web::Path<Uuid>,
 ) -> WebResult<HttpResponse> {
     let id = path.into_inner();
     let repo = CompetitionRepository::new(db.pool());

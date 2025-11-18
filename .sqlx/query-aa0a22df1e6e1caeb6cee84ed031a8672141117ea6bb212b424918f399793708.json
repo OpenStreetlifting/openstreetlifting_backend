@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO competition_participants\n                (group_id, athlete_id, bodyweight, rank, is_disqualified, disqualified_reason, ris_score)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (group_id, athlete_id)\n            DO UPDATE SET\n                bodyweight = EXCLUDED.bodyweight,\n                rank = EXCLUDED.rank,\n                is_disqualified = EXCLUDED.is_disqualified,\n                disqualified_reason = EXCLUDED.disqualified_reason,\n                ris_score = EXCLUDED.ris_score\n            RETURNING participant_id as \"participant_id: Uuid\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "participant_id: Uuid",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Int4",
+        "Bool",
+        "Text",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "aa0a22df1e6e1caeb6cee84ed031a8672141117ea6bb212b424918f399793708"
+}

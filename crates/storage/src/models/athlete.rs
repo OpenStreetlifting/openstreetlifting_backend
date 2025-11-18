@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Athlete {
-    pub athlete_id: i32,
+    pub athlete_id: Uuid,
     pub first_name: String,
     pub last_name: String,
     pub gender: String,

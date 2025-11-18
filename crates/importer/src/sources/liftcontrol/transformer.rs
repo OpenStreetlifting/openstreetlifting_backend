@@ -73,7 +73,7 @@ impl<'a> LiftControlTransformer<'a> {
             DO UPDATE SET
                 name = EXCLUDED.name,
                 status = EXCLUDED.status
-            RETURNING competition_id
+            RETURNING competition_id as "competition_id: Uuid"
             "#,
             contest.name,
             base_slug,
@@ -92,7 +92,7 @@ impl<'a> LiftControlTransformer<'a> {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Uuid> {
         let existing = sqlx::query_scalar!(
-            r#"SELECT federation_id FROM federations WHERE name = 'LiftControl'"#
+            r#"SELECT federation_id as "federation_id: Uuid" FROM federations WHERE name = 'LiftControl'"#
         )
         .fetch_optional(&mut **tx)
         .await?;
@@ -105,7 +105,7 @@ impl<'a> LiftControlTransformer<'a> {
             r#"
             INSERT INTO federations (name, abbreviation)
             VALUES ('LiftControl', 'LC')
-            RETURNING federation_id
+            RETURNING federation_id as "federation_id: Uuid"
             "#
         )
         .fetch_one(&mut **tx)
@@ -127,7 +127,7 @@ impl<'a> LiftControlTransformer<'a> {
         let (weight_min, weight_max) = extract_weight_class(&category_info.name);
 
         let existing = sqlx::query_scalar!(
-            r#"SELECT category_id FROM categories WHERE name = $1"#,
+            r#"SELECT category_id as "category_id: Uuid" FROM categories WHERE name = $1"#,
             category_info.name
         )
         .fetch_optional(&mut **tx)
@@ -157,7 +157,7 @@ impl<'a> LiftControlTransformer<'a> {
             r#"
             INSERT INTO categories (name, gender, weight_class_min, weight_class_max)
             VALUES ($1, $2, $3, $4)
-            RETURNING category_id
+            RETURNING category_id as "category_id: Uuid"
             "#,
             category_info.name,
             gender,
@@ -183,7 +183,7 @@ impl<'a> LiftControlTransformer<'a> {
             VALUES ($1, $2, $3)
             ON CONFLICT (competition_id, category_id, name)
             DO UPDATE SET name = EXCLUDED.name
-            RETURNING group_id
+            RETURNING group_id as "group_id: Uuid"
             "#,
             competition_id,
             category_id,
@@ -230,7 +230,7 @@ impl<'a> LiftControlTransformer<'a> {
                 is_disqualified = EXCLUDED.is_disqualified,
                 disqualified_reason = EXCLUDED.disqualified_reason,
                 ris_score = EXCLUDED.ris_score
-            RETURNING participant_id
+            RETURNING participant_id as "participant_id: Uuid"
             "#,
             group_id,
             athlete_id,
@@ -279,7 +279,7 @@ impl<'a> LiftControlTransformer<'a> {
         // Check using normalized names
         let existing = sqlx::query_scalar!(
             r#"
-            SELECT athlete_id FROM athletes
+            SELECT athlete_id as "athlete_id: Uuid" FROM athletes
             WHERE first_name = $1 AND last_name = $2 AND gender = $3 AND country = $4
             "#,
             db_first_name,
@@ -299,7 +299,7 @@ impl<'a> LiftControlTransformer<'a> {
             r#"
             INSERT INTO athletes (first_name, last_name, gender, country)
             VALUES ($1, $2, $3, $4)
-            RETURNING athlete_id
+            RETURNING athlete_id as "athlete_id: Uuid"
             "#,
             db_first_name,
             db_last_name,
@@ -336,7 +336,7 @@ impl<'a> LiftControlTransformer<'a> {
                 max_weight = EXCLUDED.max_weight,
                 equipment_setting = EXCLUDED.equipment_setting,
                 updated_at = CURRENT_TIMESTAMP
-            RETURNING lift_id
+            RETURNING lift_id as "lift_id: Uuid"
             "#,
             participant_id,
             movement_id,
@@ -366,7 +366,7 @@ impl<'a> LiftControlTransformer<'a> {
             VALUES ($1, $2)
             ON CONFLICT (name)
             DO UPDATE SET display_order = EXCLUDED.display_order
-            RETURNING movement_id
+            RETURNING movement_id as "movement_id: Uuid"
             "#,
             movement.name,
             movement.order
