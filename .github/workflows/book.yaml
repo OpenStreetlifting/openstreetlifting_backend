@@ -5,6 +5,9 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+env:
+  BOOK_DIR: "docs"
+
 permissions:
   contents: read
   pages: write
@@ -18,7 +21,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v2
@@ -27,11 +30,12 @@ jobs:
 
       - name: Build book
         run: mdbook build
+        working-directory: ${{ env.BOOK_DIR }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./book
+          path: ${{ env.BOOK_DIR }}/book
 
   deploy:
     environment:
