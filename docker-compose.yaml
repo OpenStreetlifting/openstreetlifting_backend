@@ -12,7 +12,6 @@ services:
       - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./backups:/backups
     networks:
       - app-network
     healthcheck:
