@@ -20,7 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    LiftControl { event_slug: String },
+    LiftControl,
 }
 
 #[tokio::main]
@@ -47,10 +47,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let context = ImportContext { pool };
 
     match cli.command {
-        Commands::LiftControl { event_slug } => {
-            tracing::info!("Starting LiftControl import for event: {}", event_slug);
+        Commands::LiftControl => {
             let importer = LiftControlImporter::new();
-            importer.import(&event_slug, &context).await?;
+            importer.import("Lift Control", &context).await?;
             tracing::info!("Import completed successfully!");
         }
     }

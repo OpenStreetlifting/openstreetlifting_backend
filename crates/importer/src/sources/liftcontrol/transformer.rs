@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use std::str::FromStr;
 use storage::models::NormalizedAthleteName;
+use uuid::Uuid;
 
 pub struct LiftControlTransformer<'a> {
     pool: &'a PgPool,
@@ -57,9 +58,12 @@ impl<'a> LiftControlTransformer<'a> {
         &self,
         contest: &Contest,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i32> {
+    ) -> Result<Uuid> {
         let date = extract_date_from_name(&contest.name);
         let federation_id = self.get_default_federation_id(tx).await?;
+
+        // Use hardcoded base slug to group all Annecy4lift parts into one competition
+        let base_slug = "annecy-4-lift-2025";
 
         let competition_id = sqlx::query_scalar!(
             r#"
@@ -72,8 +76,8 @@ impl<'a> LiftControlTransformer<'a> {
             RETURNING competition_id
             "#,
             contest.name,
-            contest.slug,
-            contest.status,
+            base_slug,
+            "completed",
             federation_id,
             date
         )
@@ -86,7 +90,7 @@ impl<'a> LiftControlTransformer<'a> {
     async fn get_default_federation_id(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i32> {
+    ) -> Result<Uuid> {
         let existing = sqlx::query_scalar!(
             r#"SELECT federation_id FROM federations WHERE name = 'LiftControl'"#
         )
@@ -117,7 +121,7 @@ impl<'a> LiftControlTransformer<'a> {
         &self,
         category_info: &CategoryInfo,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i32> {
+    ) -> Result<Uuid> {
         let gender = map_gender(&category_info.genre);
 
         let (weight_min, weight_max) = extract_weight_class(&category_info.name);
@@ -168,11 +172,11 @@ impl<'a> LiftControlTransformer<'a> {
 
     async fn upsert_competition_group(
         &self,
-        competition_id: i32,
-        category_id: i32,
+        competition_id: Uuid,
+        category_id: Uuid,
         group_name: &str,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i32> {
+    ) -> Result<Uuid> {
         let group_id = sqlx::query_scalar!(
             r#"
             INSERT INTO competition_groups (competition_id, category_id, name)
@@ -195,7 +199,7 @@ impl<'a> LiftControlTransformer<'a> {
         &self,
         athlete_data: &AthleteData,
         category_info: &CategoryInfo,
-        group_id: i32,
+        group_id: Uuid,
         movements: &HashMap<String, Movement>,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {
@@ -263,7 +267,7 @@ impl<'a> LiftControlTransformer<'a> {
         athlete_info: &AthleteInfo,
         category_info: &CategoryInfo,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i32> {
+    ) -> Result<Uuid> {
         let gender = map_gender(&category_info.genre);
 
         // Create normalized name to ensure consistent ordering and prevent duplicates
@@ -310,7 +314,7 @@ impl<'a> LiftControlTransformer<'a> {
 
     async fn import_lift(
         &self,
-        participant_id: i32,
+        participant_id: Uuid,
         movement: &Movement,
         movement_results: &MovementResults,
         athlete_info: &AthleteInfo,
@@ -355,7 +359,7 @@ impl<'a> LiftControlTransformer<'a> {
         &self,
         movement: &Movement,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<i32> {
+    ) -> Result<Uuid> {
         let movement_id = sqlx::query_scalar!(
             r#"
             INSERT INTO movements (name, display_order)
@@ -375,7 +379,7 @@ impl<'a> LiftControlTransformer<'a> {
 
     async fn import_attempt(
         &self,
-        lift_id: i32,
+        lift_id: Uuid,
         attempt: &Attempt,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {

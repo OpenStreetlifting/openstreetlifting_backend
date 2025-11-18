@@ -1460,6 +1460,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -2765,6 +2766,7 @@ dependencies = [
  "sqlx",
  "thiserror",
  "utoipa",
+ "uuid",
  "validator",
 ]
 
