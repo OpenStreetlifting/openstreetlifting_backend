@@ -1,4 +1,4 @@
-name: CI
+name: ci quality checks
 
 on:
   push:
@@ -29,6 +29,8 @@ jobs:
   lint:
     name: Clippy
     runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: true
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +46,22 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: openstreetlifting
+          POSTGRES_PASSWORD: openstreetlifting
+          POSTGRES_DB: openstreetlifting
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://openstreetlifting:openstreetlifting@localhost:5432/openstreetlifting
     steps:
       - uses: actions/checkout@v4
 
@@ -52,12 +70,20 @@ jobs:
         with:
           cache: true
 
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run migrations
+        run: sqlx migrate run
+
       - name: Run tests
         run: cargo test --workspace --all-features
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: true
     steps:
       - uses: actions/checkout@v4
 

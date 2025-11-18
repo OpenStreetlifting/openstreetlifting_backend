@@ -10,8 +10,11 @@ pub enum WebError {
     Storage(StorageError),
     Validation(ValidationErrors),
     BadRequest(String),
+    #[allow(dead_code)]
     Unauthorized,
+    #[allow(dead_code)]
     NotFound,
+    #[allow(dead_code)]
     InternalServerError(String),
 }
 

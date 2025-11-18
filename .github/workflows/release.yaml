@@ -1,4 +1,4 @@
-name: Release to Docker Hub
+name: deploy container image
 
 on:
   workflow_dispatch:

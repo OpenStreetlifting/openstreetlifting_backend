@@ -127,10 +127,10 @@ impl CreateCompetitionRequest {
             return Err("End date must be on or after start date");
         }
 
-        if let Some(judges) = self.number_of_judge {
-            if judges != 1 && judges != 3 {
-                return Err("Number of judges must be 1 or 3");
-            }
+        if let Some(judges) = self.number_of_judge
+            && judges != 1 && judges != 3
+        {
+            return Err("Number of judges must be 1 or 3");
         }
 
         Ok(())

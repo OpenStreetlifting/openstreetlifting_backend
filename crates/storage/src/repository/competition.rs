@@ -98,10 +98,10 @@ impl<'a> CompetitionRepository<'a> {
         .await
         .map_err(|e| {
             // Handle unique constraint violations for slug
-            if let sqlx::Error::Database(ref db_err) = e {
-                if db_err.code().as_deref() == Some("23505") {
-                    return StorageError::ConstraintViolation("Slug already exists".to_string());
-                }
+            if let sqlx::Error::Database(ref db_err) = e
+                && db_err.code().as_deref() == Some("23505")
+            {
+                return StorageError::ConstraintViolation("Slug already exists".to_string());
             }
             StorageError::from(e)
         })?;
@@ -113,17 +113,21 @@ impl<'a> CompetitionRepository<'a> {
     pub async fn update(
         &self,
         id: i32,
-        name: String,
-        slug: String,
-        status: String,
-        federation_id: i32,
-        venue: Option<String>,
-        city: Option<String>,
-        country: Option<String>,
-        start_date: chrono::NaiveDate,
-        end_date: chrono::NaiveDate,
-        number_of_judge: Option<i16>,
+        existing: &Competition,
+        req: &crate::dto::competition::UpdateCompetitionRequest,
     ) -> Result<Competition> {
+        // Merge update fields with existing data
+        let name = req.name.as_ref().unwrap_or(&existing.name);
+        let slug = req.slug.as_ref().unwrap_or(&existing.slug);
+        let status = req.status.as_ref().unwrap_or(&existing.status);
+        let federation_id = req.federation_id.unwrap_or(existing.federation_id);
+        let venue = req.venue.as_ref().or(existing.venue.as_ref());
+        let city = req.city.as_ref().or(existing.city.as_ref());
+        let country = req.country.as_ref().or(existing.country.as_ref());
+        let start_date = req.start_date.unwrap_or(existing.start_date);
+        let end_date = req.end_date.unwrap_or(existing.end_date);
+        let number_of_judge = req.number_of_judge.or(existing.number_of_judge);
+
         let competition = sqlx::query_as!(
             Competition,
             r#"

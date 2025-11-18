@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM competitions\n            WHERE competition_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee8b39f9e5640d3bd9ff295cd590e843ca9961394c82be3ce9a85c09a42d3d61"
+}

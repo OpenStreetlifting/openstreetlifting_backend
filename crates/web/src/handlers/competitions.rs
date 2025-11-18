@@ -124,22 +124,8 @@ pub async fn update_competition(
     // Fetch existing competition
     let existing = repo.find_by_id(id).await?;
 
-    // Merge update fields with existing data (following Arcadia pattern - update all fields)
-    let updated = repo
-        .update(
-            id,
-            update_req.name.unwrap_or(existing.name),
-            update_req.slug.unwrap_or(existing.slug),
-            update_req.status.unwrap_or(existing.status),
-            update_req.federation_id.unwrap_or(existing.federation_id),
-            update_req.venue.or(existing.venue),
-            update_req.city.or(existing.city),
-            update_req.country.or(existing.country),
-            update_req.start_date.unwrap_or(existing.start_date),
-            update_req.end_date.unwrap_or(existing.end_date),
-            update_req.number_of_judge.or(existing.number_of_judge),
-        )
-        .await?;
+    // Update competition with merged data
+    let updated = repo.update(id, &existing, &update_req).await?;
 
     Ok(HttpResponse::Ok().json(CompetitionResponse::from(updated)))
 }
