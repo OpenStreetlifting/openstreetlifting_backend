@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use importer::{
     CompetitionImporter, ImportContext, LiftControlCompetitionId, LiftControlImporter,
-    LiftControlRegistry, LiftControlSpec,
+    LiftControlRegistry,
 };
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
