@@ -1,22 +1,21 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::dto::competition::CreateCompetitionRequest;
+use crate::dto::competition::{
+    CompetitionListResponse, CreateCompetitionRequest, FederationInfo, MovementInfo,
+};
 use crate::error::{Result, StorageError};
-use crate::models::Competition;
+use crate::models::{Competition, CompetitionMovement, Federation};
 
-/// Repository for Competition database operations
 pub struct CompetitionRepository<'a> {
     pool: &'a PgPool,
 }
 
 impl<'a> CompetitionRepository<'a> {
-    /// Create a new CompetitionRepository
     pub fn new(pool: &'a PgPool) -> Self {
         Self { pool }
     }
 
-    /// List all competitions
     pub async fn list(&self) -> Result<Vec<Competition>> {
         let competitions = sqlx::query_as!(
             Competition,
@@ -33,7 +32,63 @@ impl<'a> CompetitionRepository<'a> {
         Ok(competitions)
     }
 
-    /// Get a competition by ID
+    pub async fn list_with_details(&self) -> Result<Vec<CompetitionListResponse>> {
+        let competitions = self.list().await?;
+        let mut results = Vec::with_capacity(competitions.len());
+
+        for comp in competitions {
+            let federation = sqlx::query_as!(
+                Federation,
+                "SELECT federation_id, name, rulebook_id, country, abbreviation
+                 FROM federations
+                 WHERE federation_id = $1",
+                comp.federation_id
+            )
+            .fetch_one(self.pool)
+            .await?;
+
+            let movements = sqlx::query_as!(
+                CompetitionMovement,
+                "SELECT competition_id, movement_name, is_required, display_order
+                 FROM competition_movements
+                 WHERE competition_id = $1
+                 ORDER BY display_order",
+                comp.competition_id
+            )
+            .fetch_all(self.pool)
+            .await?;
+
+            results.push(CompetitionListResponse {
+                competition_id: comp.competition_id,
+                name: comp.name,
+                created_at: comp.created_at,
+                slug: comp.slug,
+                status: comp.status,
+                venue: comp.venue,
+                city: comp.city,
+                country: comp.country,
+                start_date: comp.start_date,
+                end_date: comp.end_date,
+                federation: FederationInfo {
+                    federation_id: federation.federation_id,
+                    name: federation.name,
+                    abbreviation: federation.abbreviation,
+                    country: federation.country,
+                },
+                movements: movements
+                    .into_iter()
+                    .map(|m| MovementInfo {
+                        movement_name: m.movement_name,
+                        is_required: m.is_required,
+                        display_order: m.display_order,
+                    })
+                    .collect(),
+            });
+        }
+
+        Ok(results)
+    }
+
     pub async fn find_by_id(&self, id: Uuid) -> Result<Competition> {
         let competition = sqlx::query_as!(
             Competition,

@@ -1,7 +1,10 @@
 use actix_web::{HttpResponse, web};
 use storage::{
     Database,
-    dto::competition::{CompetitionResponse, CreateCompetitionRequest, UpdateCompetitionRequest},
+    dto::competition::{
+        CompetitionListResponse, CompetitionResponse, CreateCompetitionRequest,
+        UpdateCompetitionRequest,
+    },
     repository::competition::CompetitionRepository,
 };
 use uuid::Uuid;
@@ -9,7 +12,6 @@ use validator::Validate;
 
 use crate::error::{WebError, WebResult};
 
-/// List all competitions
 #[utoipa::path(
     get,
     path = "/api/competitions",
@@ -30,7 +32,21 @@ pub async fn list_competitions(db: web::Data<Database>) -> WebResult<HttpRespons
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Get a competition by ID
+#[utoipa::path(
+    get,
+    path = "/api/competitions/detailed",
+    responses(
+        (status = 200, description = "List all competitions with detailed information (federation and movements)", body = Vec<CompetitionListResponse>)
+    ),
+    tag = "competitions"
+)]
+pub async fn list_competitions_detailed(db: web::Data<Database>) -> WebResult<HttpResponse> {
+    let repo = CompetitionRepository::new(db.pool());
+    let competitions = repo.list_with_details().await?;
+
+    Ok(HttpResponse::Ok().json(competitions))
+}
+
 #[utoipa::path(
     get,
     path = "/api/competitions/{id}",
@@ -54,7 +70,6 @@ pub async fn get_competition(
     Ok(HttpResponse::Ok().json(CompetitionResponse::from(competition)))
 }
 
-/// Create a new competition
 #[utoipa::path(
     post,
     path = "/api/competitions",
@@ -76,10 +91,8 @@ pub async fn create_competition(
 ) -> WebResult<HttpResponse> {
     let req = payload.into_inner();
 
-    // Validate using validator crate
     req.validate()?;
 
-    // Additional cross-field validation
     req.validate_dates()
         .map_err(|e| WebError::BadRequest(e.to_string()))?;
 
@@ -89,7 +102,6 @@ pub async fn create_competition(
     Ok(HttpResponse::Created().json(CompetitionResponse::from(competition)))
 }
 
-/// Update an existing competition
 #[utoipa::path(
     put,
     path = "/api/competitions/{id}",
@@ -117,21 +129,17 @@ pub async fn update_competition(
     let id = path.into_inner();
     let update_req = payload.into_inner();
 
-    // Validate using validator crate
     update_req.validate()?;
 
     let repo = CompetitionRepository::new(db.pool());
 
-    // Fetch existing competition
     let existing = repo.find_by_id(id).await?;
 
-    // Update competition with merged data
     let updated = repo.update(id, &existing, &update_req).await?;
 
     Ok(HttpResponse::Ok().json(CompetitionResponse::from(updated)))
 }
 
-/// Delete a competition
 #[utoipa::path(
     delete,
     path = "/api/competitions/{id}",

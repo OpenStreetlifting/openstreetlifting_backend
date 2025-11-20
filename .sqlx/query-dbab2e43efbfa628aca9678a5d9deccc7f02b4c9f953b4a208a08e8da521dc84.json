@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT federation_id, name, rulebook_id, country, abbreviation\n                 FROM federations\n                 WHERE federation_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "federation_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "rulebook_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "country",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "abbreviation",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "dbab2e43efbfa628aca9678a5d9deccc7f02b4c9f953b4a208a08e8da521dc84"
+}

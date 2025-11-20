@@ -92,6 +92,40 @@ pub struct CompetitionResponse {
     pub number_of_judge: Option<i16>,
 }
 
+/// Response for competition list with enriched data (includes federation and movements)
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CompetitionListResponse {
+    pub competition_id: Uuid,
+    pub name: String,
+    pub created_at: chrono::NaiveDateTime,
+    pub slug: String,
+    pub status: String,
+    pub venue: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
+    pub federation: FederationInfo,
+    pub movements: Vec<MovementInfo>,
+}
+
+/// Federation information included in competition list response
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct FederationInfo {
+    pub federation_id: Uuid,
+    pub name: String,
+    pub abbreviation: Option<String>,
+    pub country: Option<String>,
+}
+
+/// Movement information included in competition list response
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct MovementInfo {
+    pub movement_name: String,
+    pub is_required: bool,
+    pub display_order: Option<i32>,
+}
+
 // Validation helpers
 fn default_status() -> String {
     "draft".to_string()

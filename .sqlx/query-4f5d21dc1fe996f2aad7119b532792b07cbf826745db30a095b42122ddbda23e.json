@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT category_id as \"category_id: Uuid\" FROM categories WHERE name = $1",
+  "query": "SELECT category_id as \"category_id: Uuid\" FROM categories WHERE name = $1 AND gender = $2",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
@@ -18,5 +19,5 @@
       false
     ]
   },
-  "hash": "013c759a242529b7781d1386b7284930b0537656f18e808fd068c0565832f9b9"
+  "hash": "4f5d21dc1fe996f2aad7119b532792b07cbf826745db30a095b42122ddbda23e"
 }

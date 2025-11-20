@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO competitions (name, slug, status, federation_id, start_date, end_date, venue, city, country, number_of_judge)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            ON CONFLICT (slug)\n            DO UPDATE SET\n                name = EXCLUDED.name,\n                status = EXCLUDED.status,\n                venue = EXCLUDED.venue,\n                city = EXCLUDED.city,\n                country = EXCLUDED.country,\n                number_of_judge = EXCLUDED.number_of_judge\n            RETURNING competition_id as \"competition_id: Uuid\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "competition_id: Uuid",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Uuid",
+        "Date",
+        "Date",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ebb5a43fe5ca1706fafdd3e1d53e152df2e8fa9d15f7a3d7b9738a763f10e7a7"
+}

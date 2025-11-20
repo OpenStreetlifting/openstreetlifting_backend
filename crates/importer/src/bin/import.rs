@@ -23,13 +23,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Import from LiftControl API platform
-    ///
-    /// Use a predefined competition by name (e.g., "annecy")
-    ///
-    /// Examples:
-    ///   osl-import liftcontrol --competition annecy
-    ///   osl-import liftcontrol --list
     LiftControl {
         #[command(flatten)]
         source: LiftControlSource,
@@ -76,7 +69,6 @@ async fn handle_liftcontrol_import(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let registry = LiftControlRegistry::new();
 
-    // Handle --list flag
     if source.list {
         tracing::info!("Available predefined LiftControl competitions:");
         for comp_id in registry.list_competitions() {
@@ -87,7 +79,6 @@ async fn handle_liftcontrol_import(
         return Ok(());
     }
 
-    // Create the import spec from predefined competition
     let comp_name = source
         .competition
         .expect("Competition name is required (enforced by clap)");

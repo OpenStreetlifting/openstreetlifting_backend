@@ -7,14 +7,15 @@ mod transformer;
 pub use client::LiftControlClient;
 pub use models::*;
 pub use movement_mapper::LiftControlMovementMapper;
-pub use spec::{CompetitionConfig, CompetitionId, LiftControlRegistry, LiftControlSpec};
+pub use spec::{
+    CompetitionConfig, CompetitionId, CompetitionMetadata, FederationInfo, LiftControlRegistry,
+    LiftControlSpec,
+};
 pub use transformer::LiftControlTransformer;
 
 use crate::{ImportContext, Result, traits::CompetitionImporter};
 use tracing::info;
 
-/// The LiftControl importer fetches competition data from the LiftControl API platform.
-/// It handles competitions that may have multiple sessions/divisions identified by sub-slugs.
 pub struct LiftControlImporter {
     client: LiftControlClient,
 }
@@ -52,8 +53,11 @@ impl CompetitionImporter for LiftControlImporter {
 
             info!("Fetching data for sub-slug: {}", sub_slug);
             let api_response = self.client.fetch_live_general_table(sub_slug).await?;
-            let transformer =
-                LiftControlTransformer::with_base_slug(&context.pool, spec.base_slug().to_string());
+            let transformer = LiftControlTransformer::new(
+                &context.pool,
+                spec.base_slug().to_string(),
+                spec.metadata().clone(),
+            );
             info!("Competition status: {}", api_response.contest.status);
             transformer.import_competition(api_response).await?;
         }

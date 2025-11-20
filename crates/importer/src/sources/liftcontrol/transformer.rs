@@ -1,60 +1,44 @@
 use super::models::*;
 use super::movement_mapper::LiftControlMovementMapper;
+use super::spec::CompetitionMetadata;
 use crate::movement_mapper::MovementMapper;
 use crate::{ImporterError, Result};
-use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::collections::HashMap;
-use std::str::FromStr;
 use storage::models::NormalizedAthleteName;
 use tracing::info;
 use uuid::Uuid;
 
 pub struct LiftControlTransformer<'a> {
     pool: &'a PgPool,
-    base_slug: Option<String>,
+    base_slug: String,
+    metadata: CompetitionMetadata,
 }
 
 impl<'a> LiftControlTransformer<'a> {
-    pub fn new(pool: &'a PgPool) -> Self {
+    pub fn new(pool: &'a PgPool, base_slug: String, metadata: CompetitionMetadata) -> Self {
         Self {
             pool,
-            base_slug: None,
-        }
-    }
-
-    pub fn with_base_slug(pool: &'a PgPool, base_slug: String) -> Self {
-        Self {
-            pool,
-            base_slug: Some(base_slug),
+            base_slug,
+            metadata,
         }
     }
 
     pub async fn import_competition(&self, api_response: ApiResponse) -> Result<()> {
         let mut tx = self.pool.begin().await?;
 
-        let competition_id = self
-            .upsert_competition(&api_response.contest, &mut tx)
-            .await?;
+        let competition_id = self.upsert_competition(&mut tx).await?;
 
         self.upsert_competition_movements(competition_id, &api_response.results.movements, &mut tx)
             .await?;
 
         for (category_id_str, category_info) in &api_response.results.categories {
-            info!(
-                "category id : {:?}, category info : {:?}",
-                category_id_str, category_info
-            );
             let category_id = self.upsert_category(category_info, &mut tx).await?;
 
+            let parsed = parse_category_name(&category_info.name);
             let group_id = self
-                .upsert_competition_group(
-                    competition_id,
-                    category_id,
-                    &api_response.contest.name,
-                    &mut tx,
-                )
+                .upsert_competition_group(competition_id, category_id, &parsed.group_name, &mut tx)
                 .await?;
 
             if let Some(athletes_data) = api_response.results.results.get(category_id_str) {
@@ -71,40 +55,40 @@ impl<'a> LiftControlTransformer<'a> {
             }
         }
 
-        tx.rollback().await?;
+        tx.commit().await?;
         Ok(())
     }
 
     async fn upsert_competition(
         &self,
-        contest: &Contest,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Uuid> {
-        let date = extract_date_from_name(&contest.name);
-        let federation_id = self.get_default_federation_id(tx).await?;
-
-        // Use the provided base slug to group all sub-slugs into one competition
-        let base_slug = self.base_slug.as_ref().ok_or_else(|| {
-            ImporterError::TransformationError(
-                "Base slug is required for LiftControl imports".to_string(),
-            )
-        })?;
+        let federation_id = self.get_or_create_federation(tx).await?;
 
         let competition_id = sqlx::query_scalar!(
             r#"
-            INSERT INTO competitions (name, slug, status, federation_id, start_date, end_date)
-            VALUES ($1, $2, $3, $4, $5, $5)
+            INSERT INTO competitions (name, slug, status, federation_id, start_date, end_date, venue, city, country, number_of_judge)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (slug)
             DO UPDATE SET
                 name = EXCLUDED.name,
-                status = EXCLUDED.status
+                status = EXCLUDED.status,
+                venue = EXCLUDED.venue,
+                city = EXCLUDED.city,
+                country = EXCLUDED.country,
+                number_of_judge = EXCLUDED.number_of_judge
             RETURNING competition_id as "competition_id: Uuid"
             "#,
-            contest.name,
-            base_slug,
+            self.metadata.name,
+            self.base_slug,
             "completed",
             federation_id,
-            date
+            self.metadata.start_date,
+            self.metadata.end_date,
+            self.metadata.venue,
+            self.metadata.city,
+            self.metadata.country,
+            self.metadata.number_of_judges
         )
         .fetch_one(&mut **tx)
         .await?;
@@ -152,12 +136,13 @@ impl<'a> LiftControlTransformer<'a> {
         Ok(())
     }
 
-    async fn get_default_federation_id(
+    async fn get_or_create_federation(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Uuid> {
         let existing = sqlx::query_scalar!(
-            r#"SELECT federation_id as "federation_id: Uuid" FROM federations WHERE name = '4Lift'"#
+            r#"SELECT federation_id as "federation_id: Uuid" FROM federations WHERE name = $1"#,
+            self.metadata.federation.name
         )
         .fetch_optional(&mut **tx)
         .await?;
@@ -169,14 +154,17 @@ impl<'a> LiftControlTransformer<'a> {
         let federation_id = sqlx::query_scalar!(
             r#"
             INSERT INTO federations (name, abbreviation, country)
-            VALUES ('4Lift', '4L', 'FR')
+            VALUES ($1, $2, $3)
             RETURNING federation_id as "federation_id: Uuid"
-            "#
+            "#,
+            self.metadata.federation.name,
+            self.metadata.federation.abbreviation,
+            self.metadata.federation.country
         )
         .fetch_one(&mut **tx)
         .await
         .map_err(|e| {
-            ImporterError::TransformationError(format!("Failed to get federation: {}", e))
+            ImporterError::TransformationError(format!("Failed to create federation: {}", e))
         })?;
 
         Ok(federation_id)
@@ -188,12 +176,12 @@ impl<'a> LiftControlTransformer<'a> {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Uuid> {
         let gender = map_gender(&category_info.genre);
-
-        let (weight_min, weight_max) = extract_weight_class(&category_info.name);
+        let parsed = parse_category_name(&category_info.name);
 
         let existing = sqlx::query_scalar!(
-            r#"SELECT category_id as "category_id: Uuid" FROM categories WHERE name = $1"#,
-            category_info.name
+            r#"SELECT category_id as "category_id: Uuid" FROM categories WHERE name = $1 AND gender = $2"#,
+            parsed.weight_class,
+            gender
         )
         .fetch_optional(&mut **tx)
         .await?;
@@ -202,32 +190,16 @@ impl<'a> LiftControlTransformer<'a> {
             return Ok(id);
         }
 
-        let weight_min_decimal = weight_min
-            .as_deref()
-            .map(Decimal::from_str)
-            .transpose()
-            .map_err(|e| {
-                ImporterError::TransformationError(format!("Invalid weight_min: {}", e))
-            })?;
-
-        let weight_max_decimal = weight_max
-            .as_deref()
-            .map(Decimal::from_str)
-            .transpose()
-            .map_err(|e| {
-                ImporterError::TransformationError(format!("Invalid weight_max: {}", e))
-            })?;
-
         let category_id = sqlx::query_scalar!(
             r#"
             INSERT INTO categories (name, gender, weight_class_min, weight_class_max)
             VALUES ($1, $2, $3, $4)
             RETURNING category_id as "category_id: Uuid"
             "#,
-            category_info.name,
+            parsed.weight_class,
             gender,
-            weight_min_decimal,
-            weight_max_decimal
+            None as Option<Decimal>,
+            None as Option<Decimal>
         )
         .fetch_one(&mut **tx)
         .await?;
@@ -347,7 +319,7 @@ impl<'a> LiftControlTransformer<'a> {
             db_first_name,
             db_last_name,
             gender,
-            "FR"
+            self.metadata.default_athlete_country
         )
         .fetch_optional(&mut **tx)
         .await?;
@@ -357,7 +329,6 @@ impl<'a> LiftControlTransformer<'a> {
         }
 
         // Insert using normalized names
-        // LiftControl/4lift competitions are French, so all athletes are French nationals
         let athlete_id = sqlx::query_scalar!(
             r#"
             INSERT INTO athletes (first_name, last_name, gender, country, nationality)
@@ -367,8 +338,8 @@ impl<'a> LiftControlTransformer<'a> {
             db_first_name,
             db_last_name,
             gender,
-            "FR",
-            "French"
+            self.metadata.default_athlete_country,
+            self.metadata.default_athlete_nationality
         )
         .fetch_one(&mut **tx)
         .await?;
@@ -498,15 +469,6 @@ impl<'a> LiftControlTransformer<'a> {
     }
 }
 
-fn extract_date_from_name(name: &str) -> NaiveDate {
-    for year in 2020..=2030 {
-        if name.contains(&year.to_string()) {
-            return NaiveDate::from_ymd_opt(year, 1, 1).unwrap();
-        }
-    }
-    NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
-}
-
 fn map_gender(genre: &str) -> String {
     match genre.to_lowercase().as_str() {
         "homme" | "hommes" | "men" | "male" | "m" => "M".to_string(),
@@ -515,12 +477,55 @@ fn map_gender(genre: &str) -> String {
     }
 }
 
-fn extract_weight_class(category_name: &str) -> (Option<String>, Option<String>) {
-    if category_name.to_lowercase().contains("open") {
-        return (None, None);
-    }
+struct ParsedCategory {
+    weight_class: String,
+    group_name: String,
+}
 
-    (None, None)
+fn parse_category_name(name: &str) -> ParsedCategory {
+    let weight_class = if let Some(idx) = name.find("Catégorie") {
+        let after_category = &name[idx + "Catégorie".len()..].trim();
+
+        if let Some(sign_idx) = after_category.find(['-', '+']) {
+            let sign = &after_category[sign_idx..sign_idx + 1];
+            let rest = &after_category[sign_idx + 1..];
+
+            let numeric_part: String = rest.chars().take_while(|c| c.is_numeric()).collect();
+
+            if !numeric_part.is_empty() {
+                format!("{}{}", sign, numeric_part)
+            } else {
+                "Open".to_string()
+            }
+        } else {
+            "Open".to_string()
+        }
+    } else {
+        "Open".to_string()
+    };
+
+    let group_suffix = if let Some(groupe_idx) = name.to_lowercase().find("groupe") {
+        let group_part = &name[groupe_idx..];
+        if let Some(letter) = group_part.chars().rev().find(|c| c.is_alphabetic()) {
+            format!("Groupe {}", letter.to_uppercase())
+        } else {
+            "Groupe A".to_string()
+        }
+    } else {
+        "Groupe A".to_string()
+    };
+
+    let group_name = format!("{} {}", weight_class, group_suffix);
+
+    info!(
+        "Parsed category: '{}' -> weight_class='{}', group_name='{}'",
+        name, weight_class, group_name
+    );
+
+    ParsedCategory {
+        weight_class,
+        group_name,
+    }
 }
 
 fn get_movement_settings(movement_name: &str, athlete_info: &AthleteInfo) -> Option<String> {
