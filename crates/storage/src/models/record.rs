@@ -9,7 +9,7 @@ pub struct Record {
     pub record_id: Uuid,
     pub record_type: String,
     pub category_id: Uuid,
-    pub movement_id: Uuid,
+    pub movement_name: String,
     pub athlete_id: Uuid,
     pub competition_id: Uuid,
     pub date_set: chrono::NaiveDate,

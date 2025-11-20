@@ -6,13 +6,12 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct CompetitionParticipant {
-    pub participant_id: Uuid,
     pub group_id: Uuid,
     pub athlete_id: Uuid,
     pub bodyweight: Option<Decimal>,
     pub rank: Option<i32>,
     pub is_disqualified: bool,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: Option<chrono::NaiveDateTime>,
     pub disqualified_reason: Option<String>,
     pub ris_score: Option<Decimal>,
 }

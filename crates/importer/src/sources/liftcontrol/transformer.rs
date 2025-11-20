@@ -1,4 +1,6 @@
 use super::models::*;
+use super::movement_mapper::LiftControlMovementMapper;
+use crate::movement_mapper::MovementMapper;
 use crate::{ImporterError, Result};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -10,11 +12,22 @@ use uuid::Uuid;
 
 pub struct LiftControlTransformer<'a> {
     pool: &'a PgPool,
+    base_slug: Option<String>,
 }
 
 impl<'a> LiftControlTransformer<'a> {
     pub fn new(pool: &'a PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            base_slug: None,
+        }
+    }
+
+    pub fn with_base_slug(pool: &'a PgPool, base_slug: String) -> Self {
+        Self {
+            pool,
+            base_slug: Some(base_slug),
+        }
     }
 
     pub async fn import_competition(&self, api_response: ApiResponse) -> Result<()> {
@@ -22,6 +35,9 @@ impl<'a> LiftControlTransformer<'a> {
 
         let competition_id = self
             .upsert_competition(&api_response.contest, &mut tx)
+            .await?;
+
+        self.upsert_competition_movements(competition_id, &api_response.results.movements, &mut tx)
             .await?;
 
         for (category_id_str, category_info) in &api_response.results.categories {
@@ -62,8 +78,12 @@ impl<'a> LiftControlTransformer<'a> {
         let date = extract_date_from_name(&contest.name);
         let federation_id = self.get_default_federation_id(tx).await?;
 
-        // Use hardcoded base slug to group all Annecy4lift parts into one competition
-        let base_slug = "annecy-4-lift-2025";
+        // Use the provided base slug to group all sub-slugs into one competition
+        let base_slug = self.base_slug.as_ref().ok_or_else(|| {
+            ImporterError::TransformationError(
+                "Base slug is required for LiftControl imports".to_string(),
+            )
+        })?;
 
         let competition_id = sqlx::query_scalar!(
             r#"
@@ -87,12 +107,52 @@ impl<'a> LiftControlTransformer<'a> {
         Ok(competition_id)
     }
 
+    async fn upsert_competition_movements(
+        &self,
+        competition_id: Uuid,
+        movements: &HashMap<String, Movement>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<()> {
+        let mapper = LiftControlMovementMapper;
+
+        for movement in movements.values() {
+            let canonical_movement = mapper.map_movement(&movement.name).ok_or_else(|| {
+                ImporterError::TransformationError(format!(
+                    "Unknown movement '{}' for LiftControl importer",
+                    movement.name
+                ))
+            })?;
+
+            let canonical_name = canonical_movement.as_str();
+
+            // Insert into competition_movements using the movement name directly
+            sqlx::query!(
+                r#"
+                INSERT INTO competition_movements (competition_id, movement_name, is_required, display_order)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (competition_id, movement_name)
+                DO UPDATE SET
+                    is_required = EXCLUDED.is_required,
+                    display_order = EXCLUDED.display_order
+                "#,
+                competition_id,
+                canonical_name,
+                true, // All movements in 4Lift competitions are required
+                movement.order
+            )
+            .execute(&mut **tx)
+            .await?;
+        }
+
+        Ok(())
+    }
+
     async fn get_default_federation_id(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Uuid> {
         let existing = sqlx::query_scalar!(
-            r#"SELECT federation_id as "federation_id: Uuid" FROM federations WHERE name = 'LiftControl'"#
+            r#"SELECT federation_id as "federation_id: Uuid" FROM federations WHERE name = '4Lift'"#
         )
         .fetch_optional(&mut **tx)
         .await?;
@@ -103,8 +163,8 @@ impl<'a> LiftControlTransformer<'a> {
 
         let federation_id = sqlx::query_scalar!(
             r#"
-            INSERT INTO federations (name, abbreviation)
-            VALUES ('LiftControl', 'LC')
+            INSERT INTO federations (name, abbreviation, country)
+            VALUES ('4Lift', '4L', 'FR')
             RETURNING federation_id as "federation_id: Uuid"
             "#
         )
@@ -212,13 +272,10 @@ impl<'a> LiftControlTransformer<'a> {
             AthleteRank::Disqualified(_) => None,
         };
 
-        let bodyweight = athlete_data
-            .athlete_info
-            .pesee
-            .and_then(Decimal::from_f64_retain);
-        let ris_score = Decimal::from_f64_retain(athlete_data.ris);
+        let bodyweight = athlete_data.athlete_info.pesee.and_then(convert_weight);
+        let ris_score = convert_weight(athlete_data.ris);
 
-        let participant_id = sqlx::query_scalar!(
+        sqlx::query!(
             r#"
             INSERT INTO competition_participants
                 (group_id, athlete_id, bodyweight, rank, is_disqualified, disqualified_reason, ris_score)
@@ -230,7 +287,6 @@ impl<'a> LiftControlTransformer<'a> {
                 is_disqualified = EXCLUDED.is_disqualified,
                 disqualified_reason = EXCLUDED.disqualified_reason,
                 ris_score = EXCLUDED.ris_score
-            RETURNING participant_id as "participant_id: Uuid"
             "#,
             group_id,
             athlete_id,
@@ -240,7 +296,7 @@ impl<'a> LiftControlTransformer<'a> {
             athlete_data.athlete_info.reason_out,
             ris_score
         )
-        .fetch_one(&mut **tx)
+        .execute(&mut **tx)
         .await?;
 
         let mut movement_list: Vec<_> = movements.values().collect();
@@ -249,7 +305,8 @@ impl<'a> LiftControlTransformer<'a> {
         for movement in movement_list {
             if let Some(movement_results) = athlete_data.results.get(&movement.id.to_string()) {
                 self.import_lift(
-                    participant_id,
+                    group_id,
+                    athlete_id,
                     movement,
                     movement_results,
                     &athlete_data.athlete_info,
@@ -295,16 +352,18 @@ impl<'a> LiftControlTransformer<'a> {
         }
 
         // Insert using normalized names
+        // LiftControl/4lift competitions are French, so all athletes are French nationals
         let athlete_id = sqlx::query_scalar!(
             r#"
-            INSERT INTO athletes (first_name, last_name, gender, country)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO athletes (first_name, last_name, gender, country, nationality)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING athlete_id as "athlete_id: Uuid"
             "#,
             db_first_name,
             db_last_name,
             gender,
-            "FR"
+            "FR",
+            "French"
         )
         .fetch_one(&mut **tx)
         .await?;
@@ -314,72 +373,76 @@ impl<'a> LiftControlTransformer<'a> {
 
     async fn import_lift(
         &self,
-        participant_id: Uuid,
+        group_id: Uuid,
+        athlete_id: Uuid,
         movement: &Movement,
         movement_results: &MovementResults,
         athlete_info: &AthleteInfo,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {
-        let movement_id = self.upsert_movement(movement, tx).await?;
+        let mapper = LiftControlMovementMapper;
+        let canonical_movement = mapper.map_movement(&movement.name).ok_or_else(|| {
+            ImporterError::TransformationError(format!(
+                "Unknown movement '{}' for LiftControl importer",
+                movement.name
+            ))
+        })?;
 
-        let max_weight = Decimal::from_f64_retain(movement_results.max)
-            .ok_or_else(|| ImporterError::TransformationError("Invalid max_weight".to_string()))?;
-
+        let movement_name = canonical_movement.as_str();
+        let max_weight = convert_weight(movement_results.max);
         let settings = get_movement_settings(&movement.name, athlete_info);
 
-        let lift_id = sqlx::query_scalar!(
+        // Get the participant_id from competition_participants
+        let participant = sqlx::query!(
             r#"
-            INSERT INTO lifts (participant_id, movement_id, max_weight, equipment_setting)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (participant_id, movement_id)
-            DO UPDATE SET
-                max_weight = EXCLUDED.max_weight,
-                equipment_setting = EXCLUDED.equipment_setting,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING lift_id as "lift_id: Uuid"
+            SELECT participant_id
+            FROM competition_participants
+            WHERE group_id = $1 AND athlete_id = $2
             "#,
-            participant_id,
-            movement_id,
-            max_weight,
-            settings
+            group_id,
+            athlete_id
         )
         .fetch_one(&mut **tx)
         .await?;
 
+        // Insert or update the lift
+        sqlx::query!(
+            r#"
+            INSERT INTO lifts (participant_id, movement_name, max_weight, equipment_setting)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (participant_id, movement_name)
+            DO UPDATE SET
+                max_weight = EXCLUDED.max_weight,
+                equipment_setting = EXCLUDED.equipment_setting,
+                updated_at = CURRENT_TIMESTAMP
+            "#,
+            participant.participant_id,
+            movement_name,
+            max_weight,
+            settings
+        )
+        .execute(&mut **tx)
+        .await?;
+
         for i in 1..=3 {
             if let Some(Some(attempt)) = movement_results.results.get(&i.to_string()) {
-                self.import_attempt(lift_id, attempt, tx).await?;
+                self.import_attempt(
+                    participant.participant_id,
+                    movement_name,
+                    attempt,
+                    tx,
+                )
+                .await?;
             }
         }
 
         Ok(())
     }
 
-    async fn upsert_movement(
-        &self,
-        movement: &Movement,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<Uuid> {
-        let movement_id = sqlx::query_scalar!(
-            r#"
-            INSERT INTO movements (name, display_order)
-            VALUES ($1, $2)
-            ON CONFLICT (name)
-            DO UPDATE SET display_order = EXCLUDED.display_order
-            RETURNING movement_id as "movement_id: Uuid"
-            "#,
-            movement.name,
-            movement.order
-        )
-        .fetch_one(&mut **tx)
-        .await?;
-
-        Ok(movement_id)
-    }
-
     async fn import_attempt(
         &self,
-        lift_id: Uuid,
+        participant_id: Uuid,
+        movement_name: &str,
         attempt: &Attempt,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {
@@ -393,26 +456,40 @@ impl<'a> LiftControlTransformer<'a> {
             DecisionRep::String(s) => s.parse::<i32>().ok().and_then(count_passing_judges),
         };
 
-        let weight = Decimal::from_f64_retain(attempt.charge)
-            .ok_or_else(|| ImporterError::TransformationError("Invalid weight".to_string()))?;
+        let weight = convert_weight(attempt.charge);
+
+        // Get the lift_id
+        let lift = sqlx::query!(
+            r#"
+            SELECT lift_id
+            FROM lifts
+            WHERE participant_id = $1 AND movement_name = $2
+            "#,
+            participant_id,
+            movement_name
+        )
+        .fetch_one(&mut **tx)
+        .await?;
 
         sqlx::query!(
             r#"
-            INSERT INTO attempts (lift_id, attempt_number, weight, is_successful, passing_judges, no_rep_reason)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO attempts (lift_id, attempt_number, weight, is_successful, passing_judges, no_rep_reason, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (lift_id, attempt_number)
             DO UPDATE SET
                 weight = EXCLUDED.weight,
                 is_successful = EXCLUDED.is_successful,
                 passing_judges = EXCLUDED.passing_judges,
-                no_rep_reason = EXCLUDED.no_rep_reason
+                no_rep_reason = EXCLUDED.no_rep_reason,
+                created_by = EXCLUDED.created_by
             "#,
-            lift_id,
+            lift.lift_id,
             attempt.no_essai as i16,
             weight,
             success,
             passing_judges,
-            attempt.justification_no_rep
+            attempt.justification_no_rep,
+            "Adrien Pelfresne"
         )
         .execute(&mut **tx)
         .await?;
@@ -465,4 +542,11 @@ fn count_passing_judges(decision: i32) -> Option<i16> {
         0 => Some(0),
         _ => None,
     }
+}
+
+/// Converts f64 to Decimal, rounds to 2 decimal places, and treats 0.0 as NULL
+fn convert_weight(value: f64) -> Option<Decimal> {
+    Decimal::from_f64_retain(value)
+        .map(|d| d.round_dp(2))
+        .filter(|d| !d.is_zero())
 }

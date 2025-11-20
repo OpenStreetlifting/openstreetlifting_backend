@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub struct Lift {
     pub lift_id: Uuid,
     pub participant_id: Uuid,
-    pub movement_id: Uuid,
+    pub movement_name: String,
     pub max_weight: Decimal,
     pub equipment_setting: Option<String>,
     pub updated_at: Option<chrono::NaiveDateTime>,

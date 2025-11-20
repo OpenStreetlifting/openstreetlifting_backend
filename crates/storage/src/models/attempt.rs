@@ -6,8 +6,9 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Attempt {
-    pub attempt_id: Uuid,
-    pub lift_id: Uuid,
+    pub group_id: Uuid,
+    pub athlete_id: Uuid,
+    pub movement_name: String,
     pub attempt_number: i16,
     pub weight: Decimal,
     pub is_successful: bool,

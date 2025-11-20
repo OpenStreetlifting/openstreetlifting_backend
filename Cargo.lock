@@ -1450,6 +1450,7 @@ dependencies = [
  "chrono",
  "clap",
  "dotenvy",
+ "lazy_static",
  "reqwest",
  "rust_decimal",
  "serde",

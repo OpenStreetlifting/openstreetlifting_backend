@@ -37,10 +37,9 @@ pub struct CreateCompetitionRequest {
     #[validate(length(max = 255))]
     pub country: Option<String>,
 
-    pub start_date: NaiveDate,
+    pub start_date: Option<NaiveDate>,
 
-    #[validate(custom(function = "validate_end_date"))]
-    pub end_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
 
     pub number_of_judge: Option<i16>,
 }
@@ -88,8 +87,8 @@ pub struct CompetitionResponse {
     pub venue: Option<String>,
     pub city: Option<String>,
     pub country: Option<String>,
-    pub start_date: NaiveDate,
-    pub end_date: NaiveDate,
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
     pub number_of_judge: Option<i16>,
 }
 
@@ -123,17 +122,13 @@ fn validate_status(status: &str) -> Result<(), validator::ValidationError> {
     }
 }
 
-fn validate_end_date(_end_date: &NaiveDate) -> Result<(), validator::ValidationError> {
-    // Note: We can't validate against start_date here because we don't have access to it
-    // This validation will be done in the struct-level validation
-    Ok(())
-}
-
 impl CreateCompetitionRequest {
     /// Additional validation that requires multiple fields
     pub fn validate_dates(&self) -> Result<(), &'static str> {
-        if self.end_date < self.start_date {
-            return Err("End date must be on or after start date");
+        if let (Some(end), Some(start)) = (self.end_date, self.start_date) {
+            if end < start {
+                return Err("End date must be on or after start date");
+            }
         }
 
         if let Some(judges) = self.number_of_judge

@@ -125,8 +125,8 @@ impl<'a> CompetitionRepository<'a> {
         let venue = req.venue.as_ref().or(existing.venue.as_ref());
         let city = req.city.as_ref().or(existing.city.as_ref());
         let country = req.country.as_ref().or(existing.country.as_ref());
-        let start_date = req.start_date.unwrap_or(existing.start_date);
-        let end_date = req.end_date.unwrap_or(existing.end_date);
+        let start_date = req.start_date.or(existing.start_date);
+        let end_date = req.end_date.or(existing.end_date);
         let number_of_judge = req.number_of_judge.or(existing.number_of_judge);
 
         let competition = sqlx::query_as!(

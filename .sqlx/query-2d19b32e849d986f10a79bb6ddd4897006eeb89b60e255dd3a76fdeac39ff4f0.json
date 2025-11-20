@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO federations (name, abbreviation, country)\n            VALUES ('4Lift', '4L', 'FR')\n            RETURNING federation_id as \"federation_id: Uuid\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "federation_id: Uuid",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2d19b32e849d986f10a79bb6ddd4897006eeb89b60e255dd3a76fdeac39ff4f0"
+}

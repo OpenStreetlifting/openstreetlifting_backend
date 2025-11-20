@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO lifts (participant_id, movement_name, max_weight, equipment_setting)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (participant_id, movement_name)\n            DO UPDATE SET\n                max_weight = EXCLUDED.max_weight,\n                equipment_setting = EXCLUDED.equipment_setting,\n                updated_at = CURRENT_TIMESTAMP\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Numeric",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0bc8299c1db50341014a4e12b10d9fd463047ea612b42f36924f3214220ca25d"
+}

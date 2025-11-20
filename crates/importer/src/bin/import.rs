@@ -20,7 +20,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    LiftControl,
+    /// Import from LiftControl
+    /// Format: base_slug:sub_slug1,sub_slug2,...
+    /// Example: liftcontrol "annecy-4-lift-2025:annecy-4-lift-2025-dimanche-matin-39,annecy-4-lift-2025-dimanche-apres-midi-40"
+    LiftControl {
+        /// Competition identifier in format: base_slug:sub_slug1,sub_slug2,...
+        identifier: String,
+    },
 }
 
 #[tokio::main]
@@ -47,9 +53,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let context = ImportContext { pool };
 
     match cli.command {
-        Commands::LiftControl => {
+        Commands::LiftControl { identifier } => {
             let importer = LiftControlImporter::new();
-            importer.import("Lift Control", &context).await?;
+            importer.import(&identifier, &context).await?;
             tracing::info!("Import completed successfully!");
         }
     }

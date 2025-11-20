@@ -14,7 +14,7 @@ pub struct Competition {
     pub venue: Option<String>,
     pub city: Option<String>,
     pub country: Option<String>,
-    pub start_date: chrono::NaiveDate,
-    pub end_date: chrono::NaiveDate,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
     pub number_of_judge: Option<i16>,
 }

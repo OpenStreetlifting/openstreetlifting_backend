@@ -69,10 +69,9 @@ CREATE INDEX "competition_participants_index_1" ON "competition_participants" ("
 CREATE UNIQUE INDEX "competition_participants_index_3" ON "competition_participants" ("group_id", "athlete_id");
 
 CREATE TABLE IF NOT EXISTS "movements" (
-	"movement_id" UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-	"name" VARCHAR(255) NOT NULL UNIQUE,
+	"name" VARCHAR(255) NOT NULL,
 	"display_order" INTEGER NOT NULL,
-	PRIMARY KEY("movement_id")
+	PRIMARY KEY("name")
 );
 
 CREATE INDEX "movements_index_0" ON "movements" ("display_order");
@@ -80,7 +79,7 @@ CREATE INDEX "movements_index_0" ON "movements" ("display_order");
 CREATE TABLE IF NOT EXISTS "lifts" (
 	"lift_id" UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
 	"participant_id" UUID NOT NULL,
-	"movement_id" UUID NOT NULL,
+	"movement_name" VARCHAR(255) NOT NULL,
 	"max_weight" DECIMAL NOT NULL CHECK (max_weight > 0),
 	"equipment_setting" VARCHAR(255),
 	"updated_at" TIMESTAMP,
@@ -88,8 +87,8 @@ CREATE TABLE IF NOT EXISTS "lifts" (
 );
 
 CREATE INDEX "lifts_index_0" ON "lifts" ("participant_id");
-CREATE INDEX "lifts_index_1" ON "lifts" ("movement_id", "max_weight");
-CREATE UNIQUE INDEX "lifts_index_2" ON "lifts" ("participant_id", "movement_id");
+CREATE INDEX "lifts_index_1" ON "lifts" ("movement_name", "max_weight");
+CREATE UNIQUE INDEX "lifts_index_2" ON "lifts" ("participant_id", "movement_name");
 
 CREATE TABLE IF NOT EXISTS "attempts" (
 	"attempt_id" UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
@@ -120,6 +119,16 @@ CREATE TABLE IF NOT EXISTS "competition_groups" (
 CREATE INDEX "competition_groups_index_0" ON "competition_groups" ("competition_id");
 CREATE INDEX "competition_groups_index_1" ON "competition_groups" ("category_id");
 CREATE UNIQUE INDEX "competition_groups_index_2" ON "competition_groups" ("competition_id", "category_id", "name");
+
+CREATE TABLE IF NOT EXISTS "competition_movements" (
+	"competition_id" UUID NOT NULL,
+	"movement_name" VARCHAR(255) NOT NULL,
+	"is_required" BOOLEAN NOT NULL DEFAULT TRUE,
+	"display_order" INTEGER,
+	PRIMARY KEY("competition_id", "movement_name")
+);
+
+CREATE INDEX "competition_movements_index_0" ON "competition_movements" ("competition_id");
 
 CREATE TABLE IF NOT EXISTS "socials" (
 	"social_id" UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
@@ -159,7 +168,7 @@ CREATE TABLE IF NOT EXISTS "records" (
 	"record_id" UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
 	"record_type" VARCHAR(50) NOT NULL,
 	"category_id" UUID NOT NULL,
-	"movement_id" UUID NOT NULL,
+	"movement_name" VARCHAR(255) NOT NULL,
 	"athlete_id" UUID NOT NULL,
 	"competition_id" UUID NOT NULL,
 	"date_set" DATE NOT NULL,
@@ -170,8 +179,8 @@ CREATE TABLE IF NOT EXISTS "records" (
 
 CREATE INDEX "records_index_0" ON "records" ("record_type");
 CREATE INDEX "records_index_1" ON "records" ("athlete_id");
-CREATE INDEX "records_index_2" ON "records" ("category_id", "movement_id");
-CREATE UNIQUE INDEX "records_index_3" ON "records" ("record_type", "category_id", "movement_id", "gender");
+CREATE INDEX "records_index_2" ON "records" ("category_id", "movement_name");
+CREATE UNIQUE INDEX "records_index_3" ON "records" ("record_type", "category_id", "movement_name", "gender");
 
 -- Foreign Keys
 -- Competition Groups: Categories are reference data (RESTRICT), Competitions own their groups (CASCADE)
@@ -188,12 +197,19 @@ ADD FOREIGN KEY("group_id") REFERENCES "competition_groups"("group_id") ON UPDAT
 ALTER TABLE "competition_participants"
 ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
+-- Competition Movements: Competitions own their movement configurations (CASCADE), Movements are reference data (RESTRICT)
+ALTER TABLE "competition_movements"
+ADD FOREIGN KEY("competition_id") REFERENCES "competitions"("competition_id") ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE "competition_movements"
+ADD FOREIGN KEY("movement_name") REFERENCES "movements"("name") ON UPDATE CASCADE ON DELETE RESTRICT;
+
 -- Lifts: Participants own their lifts (CASCADE), Movements are reference data (RESTRICT)
 ALTER TABLE "lifts"
 ADD FOREIGN KEY("participant_id") REFERENCES "competition_participants"("participant_id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE "lifts"
-ADD FOREIGN KEY("movement_id") REFERENCES "movements"("movement_id") ON UPDATE CASCADE ON DELETE RESTRICT;
+ADD FOREIGN KEY("movement_name") REFERENCES "movements"("name") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 -- Attempts: Lifts own their attempts (CASCADE)
 ALTER TABLE "attempts"
@@ -219,7 +235,7 @@ ALTER TABLE "records"
 ADD FOREIGN KEY("category_id") REFERENCES "categories"("category_id") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "records"
-ADD FOREIGN KEY("movement_id") REFERENCES "movements"("movement_id") ON UPDATE CASCADE ON DELETE RESTRICT;
+ADD FOREIGN KEY("movement_name") REFERENCES "movements"("name") ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE "records"
 ADD FOREIGN KEY("athlete_id") REFERENCES "athletes"("athlete_id") ON UPDATE CASCADE ON DELETE RESTRICT;
