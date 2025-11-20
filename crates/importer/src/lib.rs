@@ -7,4 +7,8 @@ pub use error::{ImporterError, Result};
 pub use movement_mapper::CanonicalMovement;
 pub use traits::{CompetitionImporter, ImportContext};
 
-pub use sources::liftcontrol::LiftControlImporter;
+// Re-export LiftControl types
+pub use sources::liftcontrol::{
+    CompetitionConfig as LiftControlConfig, CompetitionId as LiftControlCompetitionId,
+    LiftControlImporter, LiftControlRegistry, LiftControlSpec,
+};

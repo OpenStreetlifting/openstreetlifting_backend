@@ -123,12 +123,11 @@ fn validate_status(status: &str) -> Result<(), validator::ValidationError> {
 }
 
 impl CreateCompetitionRequest {
-    /// Additional validation that requires multiple fields
     pub fn validate_dates(&self) -> Result<(), &'static str> {
-        if let (Some(end), Some(start)) = (self.end_date, self.start_date) {
-            if end < start {
-                return Err("End date must be on or after start date");
-            }
+        if let (Some(end), Some(start)) = (self.end_date, self.start_date)
+            && end < start
+        {
+            return Err("End date must be on or after start date");
         }
 
         if let Some(judges) = self.number_of_judge

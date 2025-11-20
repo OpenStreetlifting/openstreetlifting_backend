@@ -8,6 +8,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use std::str::FromStr;
 use storage::models::NormalizedAthleteName;
+use tracing::info;
 use uuid::Uuid;
 
 pub struct LiftControlTransformer<'a> {
@@ -41,6 +42,10 @@ impl<'a> LiftControlTransformer<'a> {
             .await?;
 
         for (category_id_str, category_info) in &api_response.results.categories {
+            info!(
+                "category id : {:?}, category info : {:?}",
+                category_id_str, category_info
+            );
             let category_id = self.upsert_category(category_info, &mut tx).await?;
 
             let group_id = self
@@ -66,7 +71,7 @@ impl<'a> LiftControlTransformer<'a> {
             }
         }
 
-        tx.commit().await?;
+        tx.rollback().await?;
         Ok(())
     }
 
@@ -426,13 +431,8 @@ impl<'a> LiftControlTransformer<'a> {
 
         for i in 1..=3 {
             if let Some(Some(attempt)) = movement_results.results.get(&i.to_string()) {
-                self.import_attempt(
-                    participant.participant_id,
-                    movement_name,
-                    attempt,
-                    tx,
-                )
-                .await?;
+                self.import_attempt(participant.participant_id, movement_name, attempt, tx)
+                    .await?;
             }
         }
 
