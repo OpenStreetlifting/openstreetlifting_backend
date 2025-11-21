@@ -264,6 +264,7 @@ impl<'a> CompetitionRepository<'a> {
                         gender: athlete.gender,
                         nationality: athlete.nationality,
                         country: athlete.country,
+                        slug: athlete.slug,
                     },
                     bodyweight: participant.bodyweight,
                     rank: participant.rank,

@@ -170,6 +170,7 @@ pub struct AthleteInfo {
     pub gender: String,
     pub nationality: Option<String>,
     pub country: String,
+    pub slug: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
