@@ -18,16 +18,40 @@ use middleware::auth::ApiKeys;
 #[openapi(
     paths(
         handlers::competitions::list_competitions,
+        handlers::competitions::list_competitions_detailed,
         handlers::competitions::get_competition,
+        handlers::competitions::get_competition_detailed,
         handlers::competitions::create_competition,
         handlers::competitions::update_competition,
         handlers::competitions::delete_competition,
+        handlers::athletes::list_athletes,
+        handlers::athletes::get_athlete,
+        handlers::athletes::get_athlete_detailed,
+        handlers::athletes::create_athlete,
+        handlers::athletes::update_athlete,
+        handlers::athletes::delete_athlete,
     ),
     components(
         schemas(
             storage::dto::competition::CreateCompetitionRequest,
             storage::dto::competition::UpdateCompetitionRequest,
             storage::dto::competition::CompetitionResponse,
+            storage::dto::competition::CompetitionListResponse,
+            storage::dto::competition::CompetitionDetailResponse,
+            storage::dto::competition::CategoryDetail,
+            storage::dto::competition::ParticipantDetail,
+            storage::dto::competition::LiftDetail,
+            storage::dto::competition::AttemptInfo,
+            storage::dto::competition::FederationInfo,
+            storage::dto::competition::CategoryInfo,
+            storage::dto::competition::AthleteInfo,
+            storage::dto::competition::MovementInfo,
+            storage::dto::athlete::CreateAthleteRequest,
+            storage::dto::athlete::UpdateAthleteRequest,
+            storage::dto::athlete::AthleteResponse,
+            storage::dto::athlete::AthleteDetailResponse,
+            storage::dto::athlete::AthleteCompetitionSummary,
+            storage::dto::athlete::PersonalRecord,
             storage::models::Competition,
             storage::models::Athlete,
             storage::models::Category,
@@ -45,6 +69,7 @@ use middleware::auth::ApiKeys;
     ),
     tags(
         (name = "competitions", description = "Public competition endpoints"),
+        (name = "athletes", description = "Public athlete endpoints"),
     ),
     modifiers(&SecurityAddon)
 )]

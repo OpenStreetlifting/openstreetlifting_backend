@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DISTINCT ON (l.movement_name)\n                l.movement_name,\n                l.max_weight,\n                c.name as competition_name,\n                c.slug as competition_slug,\n                c.start_date as date\n            FROM lifts l\n            JOIN competition_participants cp ON l.participant_id = cp.participant_id\n            JOIN competition_groups cg ON cp.group_id = cg.group_id\n            JOIN competitions c ON cg.competition_id = c.competition_id\n            WHERE cp.athlete_id = $1\n            ORDER BY l.movement_name, l.max_weight DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "movement_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_weight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "competition_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "competition_slug",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ae5543defb881f8e9851cd8072ad70109657e515243f19ccc9edb6c2a371ee5f"
+}

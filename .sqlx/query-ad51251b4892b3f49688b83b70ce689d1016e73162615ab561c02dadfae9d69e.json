@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT category_id, name, gender, weight_class_min, weight_class_max\n                     FROM categories\n                     WHERE category_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "gender",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "weight_class_min",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "weight_class_max",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ad51251b4892b3f49688b83b70ce689d1016e73162615ab561c02dadfae9d69e"
+}

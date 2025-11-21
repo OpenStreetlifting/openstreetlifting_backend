@@ -4,7 +4,6 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-/// Request payload for creating a new competition
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 pub struct CreateCompetitionRequest {
     #[validate(length(
@@ -44,7 +43,6 @@ pub struct CreateCompetitionRequest {
     pub number_of_judge: Option<i16>,
 }
 
-/// Request payload for updating an existing competition
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 pub struct UpdateCompetitionRequest {
     #[validate(length(min = 1, max = 255))]
@@ -75,7 +73,6 @@ pub struct UpdateCompetitionRequest {
     pub number_of_judge: Option<i16>,
 }
 
-/// Response containing competition details
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CompetitionResponse {
     pub competition_id: Uuid,
@@ -92,7 +89,6 @@ pub struct CompetitionResponse {
     pub number_of_judge: Option<i16>,
 }
 
-/// Response for competition list with enriched data (includes federation and movements)
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CompetitionListResponse {
     pub competition_id: Uuid,
@@ -109,7 +105,6 @@ pub struct CompetitionListResponse {
     pub movements: Vec<MovementInfo>,
 }
 
-/// Federation information included in competition list response
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct FederationInfo {
     pub federation_id: Uuid,
@@ -118,7 +113,6 @@ pub struct FederationInfo {
     pub country: Option<String>,
 }
 
-/// Movement information included in competition list response
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct MovementInfo {
     pub movement_name: String,
@@ -126,7 +120,74 @@ pub struct MovementInfo {
     pub display_order: Option<i32>,
 }
 
-// Validation helpers
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CompetitionDetailResponse {
+    pub competition_id: uuid::Uuid,
+    pub name: String,
+    pub slug: String,
+    pub status: String,
+    pub venue: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
+    pub federation: FederationInfo,
+    pub categories: Vec<CategoryDetail>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CategoryDetail {
+    pub category: CategoryInfo,
+    pub participants: Vec<ParticipantDetail>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CategoryInfo {
+    pub category_id: uuid::Uuid,
+    pub name: String,
+    pub gender: String,
+    pub weight_class_min: Option<rust_decimal::Decimal>,
+    pub weight_class_max: Option<rust_decimal::Decimal>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ParticipantDetail {
+    pub athlete: AthleteInfo,
+    pub bodyweight: Option<rust_decimal::Decimal>,
+    pub rank: Option<i32>,
+    pub ris_score: Option<rust_decimal::Decimal>,
+    pub is_disqualified: bool,
+    pub disqualified_reason: Option<String>,
+    pub lifts: Vec<LiftDetail>,
+    pub total: rust_decimal::Decimal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AthleteInfo {
+    pub athlete_id: uuid::Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub gender: String,
+    pub nationality: Option<String>,
+    pub country: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct LiftDetail {
+    pub movement_name: String,
+    pub best_weight: rust_decimal::Decimal,
+    pub attempts: Vec<AttemptInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AttemptInfo {
+    pub attempt_number: i16,
+    pub weight: rust_decimal::Decimal,
+    pub is_successful: bool,
+    pub passing_judges: Option<i16>,
+    pub no_rep_reason: Option<String>,
+}
+
 fn default_status() -> String {
     "draft".to_string()
 }

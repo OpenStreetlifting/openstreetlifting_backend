@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT attempt_number, weight, is_successful, passing_judges, no_rep_reason\n                         FROM attempts\n                         WHERE lift_id = $1\n                         ORDER BY attempt_number",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "attempt_number",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 1,
+        "name": "weight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_successful",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "passing_judges",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "no_rep_reason",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "7bb8c9d205dba5801e498e7ccf944bf611618e7f45d5d2aacbfbb050619a51a6"
+}

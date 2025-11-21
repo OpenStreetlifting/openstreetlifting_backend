@@ -2,12 +2,11 @@ use actix_web::{HttpResponse, web};
 use storage::{
     Database,
     dto::competition::{
-        CompetitionListResponse, CompetitionResponse, CreateCompetitionRequest,
-        UpdateCompetitionRequest,
+        CompetitionDetailResponse, CompetitionListResponse, CompetitionResponse,
+        CreateCompetitionRequest, UpdateCompetitionRequest,
     },
     repository::competition::CompetitionRepository,
 };
-use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{WebError, WebResult};
@@ -49,9 +48,9 @@ pub async fn list_competitions_detailed(db: web::Data<Database>) -> WebResult<Ht
 
 #[utoipa::path(
     get,
-    path = "/api/competitions/{id}",
+    path = "/api/competitions/{slug}",
     params(
-        ("id" = Uuid, Path, description = "Competition ID")
+        ("slug" = String, Path, description = "Competition slug")
     ),
     responses(
         (status = 200, description = "Competition found", body = CompetitionResponse),
@@ -61,13 +60,36 @@ pub async fn list_competitions_detailed(db: web::Data<Database>) -> WebResult<Ht
 )]
 pub async fn get_competition(
     db: web::Data<Database>,
-    path: web::Path<Uuid>,
+    path: web::Path<String>,
 ) -> WebResult<HttpResponse> {
-    let id = path.into_inner();
+    let slug = path.into_inner();
     let repo = CompetitionRepository::new(db.pool());
-    let competition = repo.find_by_id(id).await?;
+    let competition = repo.find_by_slug(&slug).await?;
 
     Ok(HttpResponse::Ok().json(CompetitionResponse::from(competition)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/competitions/{slug}/detailed",
+    params(
+        ("slug" = String, Path, description = "Competition slug")
+    ),
+    responses(
+        (status = 200, description = "Competition with full details including groups, participants, and lifts", body = CompetitionDetailResponse),
+        (status = 404, description = "Competition not found")
+    ),
+    tag = "competitions"
+)]
+pub async fn get_competition_detailed(
+    db: web::Data<Database>,
+    path: web::Path<String>,
+) -> WebResult<HttpResponse> {
+    let slug = path.into_inner();
+    let repo = CompetitionRepository::new(db.pool());
+    let competition = repo.find_by_slug_detailed(&slug).await?;
+
+    Ok(HttpResponse::Ok().json(competition))
 }
 
 #[utoipa::path(
@@ -104,9 +126,9 @@ pub async fn create_competition(
 
 #[utoipa::path(
     put,
-    path = "/api/competitions/{id}",
+    path = "/api/competitions/{slug}",
     params(
-        ("id" = Uuid, Path, description = "Competition ID")
+        ("slug" = String, Path, description = "Competition slug")
     ),
     request_body = UpdateCompetitionRequest,
     security(
@@ -123,28 +145,30 @@ pub async fn create_competition(
 )]
 pub async fn update_competition(
     db: web::Data<Database>,
-    path: web::Path<Uuid>,
+    path: web::Path<String>,
     payload: web::Json<UpdateCompetitionRequest>,
 ) -> WebResult<HttpResponse> {
-    let id = path.into_inner();
+    let slug = path.into_inner();
     let update_req = payload.into_inner();
 
     update_req.validate()?;
 
     let repo = CompetitionRepository::new(db.pool());
 
-    let existing = repo.find_by_id(id).await?;
+    let existing = repo.find_by_slug(&slug).await?;
 
-    let updated = repo.update(id, &existing, &update_req).await?;
+    let updated = repo
+        .update(existing.competition_id, &existing, &update_req)
+        .await?;
 
     Ok(HttpResponse::Ok().json(CompetitionResponse::from(updated)))
 }
 
 #[utoipa::path(
     delete,
-    path = "/api/competitions/{id}",
+    path = "/api/competitions/{slug}",
     params(
-        ("id" = Uuid, Path, description = "Competition ID")
+        ("slug" = String, Path, description = "Competition slug")
     ),
     security(
         ("bearer_auth" = [])
@@ -158,11 +182,12 @@ pub async fn update_competition(
 )]
 pub async fn delete_competition(
     db: web::Data<Database>,
-    path: web::Path<Uuid>,
+    path: web::Path<String>,
 ) -> WebResult<HttpResponse> {
-    let id = path.into_inner();
+    let slug = path.into_inner();
     let repo = CompetitionRepository::new(db.pool());
-    repo.delete(id).await?;
+    let competition = repo.find_by_slug(&slug).await?;
+    repo.delete(competition.competition_id).await?;
 
     Ok(HttpResponse::NoContent().finish())
 }

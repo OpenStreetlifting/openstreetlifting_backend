@@ -13,4 +13,8 @@ pub struct Athlete {
     pub nationality: Option<String>,
     pub country: String,
     pub profile_picture_url: Option<String>,
+    pub slug: String,
+    #[sqlx(default)]
+    #[schema(value_type = Vec<String>)]
+    pub slug_history: sqlx::types::Json<Vec<String>>,
 }

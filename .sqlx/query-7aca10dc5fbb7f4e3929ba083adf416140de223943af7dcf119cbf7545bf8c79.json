@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                c.competition_id,\n                c.name as competition_name,\n                c.slug as competition_slug,\n                c.start_date as competition_date,\n                cat.name as category_name,\n                cp.rank,\n                COALESCE(SUM(l.max_weight), 0) as \"total!: Decimal\",\n                cp.ris_score,\n                cp.is_disqualified\n            FROM competition_participants cp\n            JOIN competition_groups cg ON cp.group_id = cg.group_id\n            JOIN competitions c ON cg.competition_id = c.competition_id\n            JOIN categories cat ON cg.category_id = cat.category_id\n            LEFT JOIN lifts l ON l.participant_id = cp.participant_id\n            WHERE cp.athlete_id = $1\n            GROUP BY c.competition_id, c.name, c.slug, c.start_date, cat.name, cp.rank, cp.ris_score, cp.is_disqualified\n            ORDER BY c.start_date DESC NULLS LAST\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "competition_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "competition_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "competition_slug",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "competition_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "category_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "rank",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "total!: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "ris_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_disqualified",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      true,
+      false
+    ]
+  },
+  "hash": "7aca10dc5fbb7f4e3929ba083adf416140de223943af7dcf119cbf7545bf8c79"
+}

@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE athletes\n            SET first_name = $2,\n                last_name = $3,\n                gender = $4,\n                nationality = $5,\n                country = $6,\n                profile_picture_url = $7,\n                slug = $8,\n                slug_history = $9\n            WHERE athlete_id = $1\n            RETURNING athlete_id, first_name, last_name, gender, created_at,\n                      nationality, country, profile_picture_url, slug,\n                      COALESCE(slug_history, '[]'::jsonb) as \"slug_history!: sqlx::types::Json<Vec<String>>\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "athlete_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "gender",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "nationality",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "country",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "profile_picture_url",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "slug",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "slug_history!: sqlx::types::Json<Vec<String>>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "27c4d4ed0339a89428295d968d307cf0a2014a4295b1535151a7c34ccd06a958"
+}

@@ -27,7 +27,6 @@ impl Database {
         Ok(())
     }
 
-    /// Get a reference to the database pool
     pub fn pool(&self) -> &PgPool {
         &self.pool
     }

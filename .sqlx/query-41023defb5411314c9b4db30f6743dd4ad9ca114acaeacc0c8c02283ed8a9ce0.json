@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT lift_id, participant_id, movement_name, max_weight,\n                            equipment_setting, updated_at\n                     FROM lifts\n                     WHERE participant_id IN (\n                         SELECT participant_id FROM competition_participants\n                         WHERE group_id = $1 AND athlete_id = $2\n                     )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "participant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "movement_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_weight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "equipment_setting",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "41023defb5411314c9b4db30f6743dd4ad9ca114acaeacc0c8c02283ed8a9ce0"
+}
