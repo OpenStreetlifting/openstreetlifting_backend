@@ -1,11 +1,11 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use storage::{
+    Database,
     dto::{
         common::PaginatedResponse,
         ranking::{GlobalRankingEntry, GlobalRankingFilter},
     },
     repository::ranking::RankingRepository,
-    Database,
 };
 
 use crate::error::{WebError, WebResult};
@@ -26,9 +26,7 @@ pub async fn get_global_ranking(
 ) -> WebResult<HttpResponse> {
     let filter = query.into_inner();
 
-    filter
-        .validate()
-        .map_err(|e| WebError::BadRequest(e))?;
+    filter.validate().map_err(WebError::BadRequest)?;
 
     let repo = RankingRepository::new(db.pool());
     let (entries, total_items) = repo.get_global_ranking(&filter).await?;

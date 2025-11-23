@@ -1,13 +1,13 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use storage::{
+    Database,
     dto::ris::{
-        ComputeRisRequest, ComputeRisResponse, RisConstants, RisFormulaResponse,
-        RisScoreResponse, GenderConstants,
+        ComputeRisRequest, ComputeRisResponse, GenderConstants, RisConstants, RisFormulaResponse,
+        RisScoreResponse,
     },
     models::RisFormulaVersion,
     repository::ris::RisRepository,
     services::ris_computation,
-    Database,
 };
 use uuid::Uuid;
 use validator::Validate;
@@ -135,13 +135,9 @@ pub async fn compute_ris(
         repo.get_current_formula().await?
     };
 
-    let ris_score = ris_computation::compute_ris(
-        payload.bodyweight,
-        payload.total,
-        &payload.gender,
-        &formula,
-    )
-    .await?;
+    let ris_score =
+        ris_computation::compute_ris(payload.bodyweight, payload.total, &payload.gender, &formula)
+            .await?;
 
     let response = ComputeRisResponse {
         ris_score,

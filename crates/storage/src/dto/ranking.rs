@@ -22,9 +22,11 @@ impl GlobalRankingFilter {
         self.pagination.validate()?;
 
         if let Some(ref gender) = self.gender
-            && gender != "M" && gender != "F" {
-                return Err("gender must be 'M' or 'F'".to_string());
-            }
+            && gender != "M"
+            && gender != "F"
+        {
+            return Err("gender must be 'M' or 'F'".to_string());
+        }
 
         let valid_movements = ["muscleup", "pullup", "dips", "squat", "total"];
         if !valid_movements.contains(&self.movement.as_str()) {

@@ -13,11 +13,9 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/formulas/{year}", web::get().to(get_formula_by_year))
             .route("/compute", web::post().to(compute_ris)),
     )
-    .service(
-        web::scope("/participants")
-            .route("/{participant_id}/ris-history", web::get().to(get_participant_ris_history)),
-    )
-    .service(
-        web::scope("/admin/ris").route("/recompute-all", web::post().to(recompute_all_ris)),
-    );
+    .service(web::scope("/participants").route(
+        "/{participant_id}/ris-history",
+        web::get().to(get_participant_ris_history),
+    ))
+    .service(web::scope("/admin/ris").route("/recompute-all", web::post().to(recompute_all_ris)));
 }

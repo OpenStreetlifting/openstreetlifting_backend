@@ -19,7 +19,8 @@ pub async fn compute_ris(
     let exp_arg = -constants.b * bw_minus_v;
 
     let exp_term = decimal_exp(exp_arg);
-    let denominator_fraction = (constants.k - constants.a) / (Decimal::ONE + constants.q * exp_term);
+    let denominator_fraction =
+        (constants.k - constants.a) / (Decimal::ONE + constants.q * exp_term);
     let denominator = constants.a + denominator_fraction;
 
     let ris_score = (total * Decimal::from(100)) / denominator;
@@ -33,7 +34,10 @@ fn decimal_exp(x: Decimal) -> Decimal {
     Decimal::from_f64_retain(result).unwrap_or(Decimal::ONE)
 }
 
-pub async fn get_formula_for_date(pool: &PgPool, competition_date: NaiveDate) -> Result<RisFormulaVersion> {
+pub async fn get_formula_for_date(
+    pool: &PgPool,
+    competition_date: NaiveDate,
+) -> Result<RisFormulaVersion> {
     let repo = RisRepository::new(pool);
     repo.get_formula_for_date(competition_date).await
 }
@@ -55,8 +59,16 @@ pub async fn compute_and_store_ris(
 
     let ris_score = compute_ris(bodyweight, total, gender, &formula).await?;
 
-    repo.upsert_ris_score(participant_id, formula.formula_id, ris_score, bodyweight, total).await?;
-    repo.update_participant_current_ris(participant_id, ris_score).await?;
+    repo.upsert_ris_score(
+        participant_id,
+        formula.formula_id,
+        ris_score,
+        bodyweight,
+        total,
+    )
+    .await?;
+    repo.update_participant_current_ris(participant_id, ris_score)
+        .await?;
 
     Ok(ris_score)
 }
@@ -75,13 +87,15 @@ pub async fn compute_historical_ris(
 
     for formula in formulas {
         let ris_score = compute_ris(bodyweight, total, gender, &formula).await?;
-        let score_history = repo.upsert_ris_score(
-            participant_id,
-            formula.formula_id,
-            ris_score,
-            bodyweight,
-            total,
-        ).await?;
+        let score_history = repo
+            .upsert_ris_score(
+                participant_id,
+                formula.formula_id,
+                ris_score,
+                bodyweight,
+                total,
+            )
+            .await?;
         results.push(score_history);
     }
 
@@ -118,7 +132,8 @@ pub async fn recompute_all_ris(pool: &PgPool, formula_id: Option<Uuid>) -> Resul
 
     for participant in participants {
         if let Some(bodyweight) = participant.bodyweight {
-            let ris_score = compute_ris(bodyweight, participant.total, &participant.gender, &formula).await?;
+            let ris_score =
+                compute_ris(bodyweight, participant.total, &participant.gender, &formula).await?;
 
             repo.upsert_ris_score(
                 participant.participant_id,
@@ -126,9 +141,11 @@ pub async fn recompute_all_ris(pool: &PgPool, formula_id: Option<Uuid>) -> Resul
                 ris_score,
                 bodyweight,
                 participant.total,
-            ).await?;
+            )
+            .await?;
 
-            repo.update_participant_current_ris(participant.participant_id, ris_score).await?;
+            repo.update_participant_current_ris(participant.participant_id, ris_score)
+                .await?;
             count += 1;
         }
     }

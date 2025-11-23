@@ -56,7 +56,8 @@ impl<'a> LiftControlTransformer<'a> {
         }
 
         info!("Computing RIS scores for all participants...");
-        self.compute_ris_for_competition(competition_id, &mut tx).await?;
+        self.compute_ris_for_competition(competition_id, &mut tx)
+            .await?;
 
         tx.commit().await?;
         Ok(())
@@ -328,18 +329,24 @@ impl<'a> LiftControlTransformer<'a> {
             return Ok(id);
         }
 
+        // Generate unique slug for new athlete
+        let slug = self
+            .generate_unique_slug(db_first_name, db_last_name, tx)
+            .await?;
+
         // Insert using normalized names
         let athlete_id = sqlx::query_scalar!(
             r#"
-            INSERT INTO athletes (first_name, last_name, gender, country, nationality)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO athletes (first_name, last_name, gender, country, nationality, slug)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING athlete_id as "athlete_id: Uuid"
             "#,
             db_first_name,
             db_last_name,
             gender,
             self.metadata.default_athlete_country,
-            self.metadata.default_athlete_nationality
+            self.metadata.default_athlete_nationality,
+            slug
         )
         .fetch_one(&mut **tx)
         .await?;
@@ -475,11 +482,15 @@ impl<'a> LiftControlTransformer<'a> {
     ) -> Result<()> {
         let competition_date = self.metadata.start_date;
 
-        let formula = storage::services::ris_computation::get_formula_for_date(self.pool, competition_date)
-            .await
-            .map_err(|e| ImporterError::TransformationError(
-                format!("No RIS formula available for date {}: {}", competition_date, e)
-            ))?;
+        let formula =
+            storage::services::ris_computation::get_formula_for_date(self.pool, competition_date)
+                .await
+                .map_err(|e| {
+                    ImporterError::TransformationError(format!(
+                        "No RIS formula available for date {}: {}",
+                        competition_date, e
+                    ))
+                })?;
 
         let participants = sqlx::query!(
             r#"
@@ -512,9 +523,12 @@ impl<'a> LiftControlTransformer<'a> {
                     &formula,
                 )
                 .await
-                .map_err(|e| ImporterError::TransformationError(
-                    format!("Failed to compute RIS for participant {}: {}", participant.participant_id, e)
-                ))?;
+                .map_err(|e| {
+                    ImporterError::TransformationError(format!(
+                        "Failed to compute RIS for participant {}: {}",
+                        participant.participant_id, e
+                    ))
+                })?;
 
                 sqlx::query!(
                     r#"
@@ -552,6 +566,47 @@ impl<'a> LiftControlTransformer<'a> {
 
         info!("Computed RIS for {} participants", participant_count);
         Ok(())
+    }
+
+    /// Generate unique slug from first and last name
+    async fn generate_unique_slug(
+        &self,
+        first_name: &str,
+        last_name: &str,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<String> {
+        let base_slug = format!("{}-{}", first_name, last_name)
+            .to_lowercase()
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '-')
+            .collect::<String>()
+            .split('-')
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<&str>>()
+            .join("-");
+
+        let base_slug = if base_slug.is_empty() {
+            "athlete".to_string()
+        } else {
+            base_slug
+        };
+
+        let mut final_slug = base_slug.clone();
+        let mut counter = 2;
+
+        while sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM athletes WHERE slug = $1)",
+            final_slug
+        )
+        .fetch_one(&mut **tx)
+        .await?
+        .unwrap_or(false)
+        {
+            final_slug = format!("{}-{}", base_slug, counter);
+            counter += 1;
+        }
+
+        Ok(final_slug)
     }
 }
 
