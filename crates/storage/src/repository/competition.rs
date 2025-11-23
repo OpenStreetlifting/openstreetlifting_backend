@@ -1,17 +1,23 @@
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+use sqlx::{FromRow, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
+
+#[derive(Debug, FromRow)]
+struct ParticipantRanking {
+    participant_id: Uuid,
+    category_rank: Option<i64>,
+    competition_rank: Option<i64>,
+}
 
 use crate::dto::competition::{
     AthleteInfo, AttemptInfo, CategoryDetail, CategoryInfo, CompetitionDetailResponse,
     CompetitionListResponse, CreateCompetitionRequest, FederationInfo, LiftDetail, MovementInfo,
-    ParticipantDetail,
+    ParticipantDetail, RankingScope,
 };
 use crate::error::{Result, StorageError};
 use crate::models::{
-    Athlete, Category, Competition, CompetitionGroup, CompetitionMovement, CompetitionParticipant,
-    Federation, Lift,
+    Athlete, Category, Competition, CompetitionGroup, CompetitionMovement, Federation, Lift,
 };
 
 pub struct CompetitionRepository<'a> {
@@ -133,20 +139,132 @@ impl<'a> CompetitionRepository<'a> {
         Ok(competition)
     }
 
-    pub async fn find_by_slug_detailed(&self, slug: &str) -> Result<CompetitionDetailResponse> {
+    pub async fn find_by_slug_detailed(
+        &self,
+        slug: &str,
+        ranking_scope: RankingScope,
+    ) -> Result<CompetitionDetailResponse> {
         let competition = self.find_by_slug(slug).await?;
-        self.get_detailed_competition(competition).await
+        self.get_detailed_competition(competition, ranking_scope)
+            .await
     }
 
-    pub async fn find_by_id_detailed(&self, id: Uuid) -> Result<CompetitionDetailResponse> {
+    pub async fn find_by_id_detailed(
+        &self,
+        id: Uuid,
+        ranking_scope: RankingScope,
+    ) -> Result<CompetitionDetailResponse> {
         let competition = self.find_by_id(id).await?;
-        self.get_detailed_competition(competition).await
+        self.get_detailed_competition(competition, ranking_scope)
+            .await
+    }
+
+    /// Compute category and competition rankings for all participants in a competition
+    async fn compute_rankings(
+        &self,
+        competition_id: Uuid,
+        ranking_scope: &RankingScope,
+    ) -> Result<HashMap<Uuid, ParticipantRanking>> {
+        match ranking_scope {
+            RankingScope::Group => {
+                // No additional ranking needed, will use stored rank
+                Ok(HashMap::new())
+            }
+            RankingScope::Category => {
+                // Compute category rankings only
+                let rankings = sqlx::query_as::<_, ParticipantRanking>(
+                    r#"
+                    WITH participant_totals AS (
+                        SELECT
+                            cp.participant_id,
+                            cg.category_id,
+                            cp.bodyweight,
+                            cp.ris_score,
+                            COALESCE(SUM(l.max_weight), 0) as total
+                        FROM competition_participants cp
+                        JOIN competition_groups cg ON cp.group_id = cg.group_id
+                        LEFT JOIN lifts l ON l.participant_id = cp.participant_id
+                        WHERE cg.competition_id = $1
+                        GROUP BY cp.participant_id, cg.category_id, cp.bodyweight, cp.ris_score
+                    )
+                    SELECT
+                        participant_id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY category_id
+                            ORDER BY
+                                CASE WHEN total = 0 THEN 1 ELSE 0 END,
+                                total DESC,
+                                bodyweight ASC NULLS LAST
+                        )::bigint as category_rank,
+                        NULL::bigint as competition_rank
+                    FROM participant_totals
+                    "#,
+                )
+                .bind(competition_id)
+                .fetch_all(self.pool)
+                .await?;
+
+                Ok(rankings
+                    .into_iter()
+                    .map(|r| (r.participant_id, r))
+                    .collect())
+            }
+            RankingScope::Competition => {
+                // Compute both category and competition rankings
+                let rankings = sqlx::query_as::<_, ParticipantRanking>(
+                    r#"
+                    WITH participant_totals AS (
+                        SELECT
+                            cp.participant_id,
+                            cg.category_id,
+                            cp.bodyweight,
+                            cp.ris_score,
+                            COALESCE(SUM(l.max_weight), 0) as total
+                        FROM competition_participants cp
+                        JOIN competition_groups cg ON cp.group_id = cg.group_id
+                        LEFT JOIN lifts l ON l.participant_id = cp.participant_id
+                        WHERE cg.competition_id = $1
+                        GROUP BY cp.participant_id, cg.category_id, cp.bodyweight, cp.ris_score
+                    )
+                    SELECT
+                        participant_id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY category_id
+                            ORDER BY
+                                CASE WHEN total = 0 THEN 1 ELSE 0 END,
+                                total DESC,
+                                bodyweight ASC NULLS LAST
+                        )::bigint as category_rank,
+                        ROW_NUMBER() OVER (
+                            ORDER BY
+                                CASE WHEN ris_score IS NULL OR ris_score = 0 THEN 1 ELSE 0 END,
+                                ris_score DESC NULLS LAST
+                        )::bigint as competition_rank
+                    FROM participant_totals
+                    "#,
+                )
+                .bind(competition_id)
+                .fetch_all(self.pool)
+                .await?;
+
+                Ok(rankings
+                    .into_iter()
+                    .map(|r| (r.participant_id, r))
+                    .collect())
+            }
+        }
     }
 
     async fn get_detailed_competition(
         &self,
         competition: Competition,
+        ranking_scope: RankingScope,
     ) -> Result<CompetitionDetailResponse> {
+        // Compute rankings for all participants in the competition
+        let ranking_map = self
+            .compute_rankings(competition.competition_id, &ranking_scope)
+            .await?;
+
         let federation = sqlx::query_as!(
             Federation,
             "SELECT federation_id, name, rulebook_id, country, abbreviation
@@ -184,9 +302,8 @@ impl<'a> CompetitionRepository<'a> {
                 .await?;
                 e.insert((category, Vec::new()));
             }
-            let participants = sqlx::query_as!(
-                CompetitionParticipant,
-                "SELECT group_id, athlete_id, bodyweight, rank, is_disqualified,
+            let participants = sqlx::query!(
+                "SELECT participant_id, group_id, athlete_id, bodyweight, rank, is_disqualified,
                         created_at, disqualified_reason, ris_score
                  FROM competition_participants
                  WHERE group_id = $1
@@ -256,6 +373,11 @@ impl<'a> CompetitionRepository<'a> {
                     });
                 }
 
+                // Get computed rankings for this participant
+                let rankings = ranking_map.get(&participant.participant_id);
+                let category_rank = rankings.and_then(|r| r.category_rank.map(|v| v as i32));
+                let competition_rank = rankings.and_then(|r| r.competition_rank.map(|v| v as i32));
+
                 let participant_detail = ParticipantDetail {
                     athlete: AthleteInfo {
                         athlete_id: athlete.athlete_id,
@@ -268,9 +390,11 @@ impl<'a> CompetitionRepository<'a> {
                     },
                     bodyweight: participant.bodyweight,
                     rank: participant.rank,
+                    category_rank,
+                    competition_rank,
                     ris_score: participant.ris_score,
                     is_disqualified: participant.is_disqualified,
-                    disqualified_reason: participant.disqualified_reason,
+                    disqualified_reason: participant.disqualified_reason.clone(),
                     lifts: lift_details,
                     total,
                 };
