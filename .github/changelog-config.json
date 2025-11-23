@@ -1,0 +1,41 @@
+{
+  "categories": [
+    {
+      "title": "## Features",
+      "labels": ["feature"]
+    },
+    {
+      "title": "## Bug Fixes",
+      "labels": ["bug"]
+    },
+    {
+      "title": "## Breaking Changes",
+      "labels": ["breaking"]
+    },
+    {
+      "title": "## Documentation",
+      "labels": ["docs"]
+    },
+    {
+      "title": "## Maintenance",
+      "labels": ["chore"]
+    }
+  ],
+  "ignore_labels": ["ignore-for-release", "wip"],
+  "sort": "ASC",
+  "template": "#{{CHANGELOG}}\n\n### Linear Issues\n#{{LINEAR}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
+  "pr_template": "- #{{TITLE}} (#{{NUMBER}})",
+  "label_extractor": [
+    {
+      "pattern": "\\[([A-Z]+-\\d+)\\]",
+      "target": "LINEAR",
+      "on_property": "title"
+    }
+  ],
+  "transformers": [
+    {
+      "pattern": "\\[([A-Z]+-\\d+)\\]\\s*",
+      "target": "TITLE"
+    }
+  ]
+}

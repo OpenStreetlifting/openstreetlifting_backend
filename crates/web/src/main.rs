@@ -30,6 +30,7 @@ use middleware::auth::ApiKeys;
         handlers::athletes::create_athlete,
         handlers::athletes::update_athlete,
         handlers::athletes::delete_athlete,
+        handlers::ranking::get_global_ranking,
     ),
     components(
         schemas(
@@ -52,6 +53,10 @@ use middleware::auth::ApiKeys;
             storage::dto::athlete::AthleteDetailResponse,
             storage::dto::athlete::AthleteCompetitionSummary,
             storage::dto::athlete::PersonalRecord,
+            storage::dto::common::PaginationMeta,
+            storage::dto::ranking::GlobalRankingEntry,
+            storage::dto::ranking::AthleteInfo,
+            storage::dto::ranking::CompetitionInfo,
             storage::models::Competition,
             storage::models::Athlete,
             storage::models::Category,
@@ -70,6 +75,7 @@ use middleware::auth::ApiKeys;
     tags(
         (name = "competitions", description = "Public competition endpoints"),
         (name = "athletes", description = "Public athlete endpoints"),
+        (name = "rankings", description = "Public ranking endpoints"),
     ),
     modifiers(&SecurityAddon)
 )]

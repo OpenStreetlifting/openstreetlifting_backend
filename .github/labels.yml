@@ -1,0 +1,27 @@
+- name: feature
+  color: "0e8a16"
+  description: New features and enhancements
+
+- name: bug
+  color: "d73a4a"
+  description: Bug reports and fixes
+
+- name: breaking
+  color: "b60205"
+  description: Breaking changes requiring major version bump
+
+- name: docs
+  color: "0075ca"
+  description: Documentation changes
+
+- name: chore
+  color: "fef2c0"
+  description: Maintenance, dependencies, and tooling
+
+- name: ignore-for-release
+  color: "ffffff"
+  description: Do not include in release notes
+
+- name: wip
+  color: "fbca04"
+  description: Work in progress
