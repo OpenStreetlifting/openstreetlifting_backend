@@ -4,6 +4,26 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum RankingScope {
+    Group,
+    Category,
+    Competition,
+}
+
+impl Default for RankingScope {
+    fn default() -> Self {
+        Self::Group
+    }
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct RankingScopeQuery {
+    #[serde(default)]
+    pub ranking_scope: RankingScope,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 pub struct CreateCompetitionRequest {
     #[validate(length(
@@ -155,6 +175,8 @@ pub struct ParticipantDetail {
     pub athlete: AthleteInfo,
     pub bodyweight: Option<rust_decimal::Decimal>,
     pub rank: Option<i32>,
+    pub category_rank: Option<i32>,
+    pub competition_rank: Option<i32>,
     pub ris_score: Option<rust_decimal::Decimal>,
     pub is_disqualified: bool,
     pub disqualified_reason: Option<String>,
