@@ -11,6 +11,8 @@ pub mod lift;
 pub mod movement;
 pub mod normalized_name;
 pub mod record;
+pub mod ris_formula;
+pub mod ris_score;
 pub mod rulebook;
 pub mod social;
 
@@ -27,5 +29,7 @@ pub use lift::*;
 pub use movement::*;
 pub use normalized_name::*;
 pub use record::*;
+pub use ris_formula::*;
+pub use ris_score::*;
 pub use rulebook::*;
 pub use social::*;

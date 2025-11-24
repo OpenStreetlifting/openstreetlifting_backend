@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT ris_score_id, participant_id, formula_id, ris_score, bodyweight, total_weight, computed_at\n            FROM ris_scores_history\n            WHERE participant_id = $1\n            ORDER BY computed_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ris_score_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "participant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "formula_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "ris_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "bodyweight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_weight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "computed_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8ca4362f2b328d898aef436723a5b41a687cca832825c3b73ac07e1f0c8d2421"
+}
