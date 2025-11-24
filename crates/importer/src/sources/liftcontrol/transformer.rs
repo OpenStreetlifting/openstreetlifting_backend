@@ -304,13 +304,10 @@ impl<'a> LiftControlTransformer<'a> {
     ) -> Result<Uuid> {
         let gender = map_gender(&category_info.genre);
 
-        // Create normalized name to ensure consistent ordering and prevent duplicates
-        // like "John Smith" and "Smith John" from being treated as different athletes
         let normalized_name =
             NormalizedAthleteName::new(&athlete_info.first_name, &athlete_info.last_name);
         let (db_first_name, db_last_name) = normalized_name.as_database_tuple();
 
-        // Check using normalized names
         let existing = sqlx::query_scalar!(
             r#"
             SELECT athlete_id as "athlete_id: Uuid" FROM athletes
@@ -328,23 +325,67 @@ impl<'a> LiftControlTransformer<'a> {
             return Ok(id);
         }
 
-        // Insert using normalized names
+        let slug = self
+            .generate_unique_slug(db_first_name, db_last_name, &mut *tx)
+            .await?;
+
         let athlete_id = sqlx::query_scalar!(
             r#"
-            INSERT INTO athletes (first_name, last_name, gender, country, nationality)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO athletes (first_name, last_name, gender, country, nationality, slug)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING athlete_id as "athlete_id: Uuid"
             "#,
             db_first_name,
             db_last_name,
             gender,
             self.metadata.default_athlete_country,
-            self.metadata.default_athlete_nationality
+            self.metadata.default_athlete_nationality,
+            slug
         )
         .fetch_one(&mut **tx)
         .await?;
 
         Ok(athlete_id)
+    }
+
+    async fn generate_unique_slug(
+        &self,
+        first_name: &str,
+        last_name: &str,
+        tx: &mut sqlx::PgConnection,
+    ) -> Result<String> {
+        let base_slug = format!("{}-{}", first_name, last_name)
+            .to_lowercase()
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '-')
+            .collect::<String>()
+            .split('-')
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<&str>>()
+            .join("-");
+
+        let base_slug = if base_slug.is_empty() {
+            "athlete".to_string()
+        } else {
+            base_slug
+        };
+
+        let mut final_slug = base_slug.clone();
+        let mut counter = 2;
+
+        while sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM athletes WHERE slug = $1)",
+            final_slug
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .unwrap_or(false)
+        {
+            final_slug = format!("{}-{}", base_slug, counter);
+            counter += 1;
+        }
+
+        Ok(final_slug)
     }
 
     async fn import_lift(

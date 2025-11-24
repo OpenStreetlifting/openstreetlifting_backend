@@ -76,7 +76,7 @@ pub async fn get_competition(
         ("slug" = String, Path, description = "Competition slug")
     ),
     responses(
-        (status = 200, description = "Competition with full details including groups, participants, and lifts", body = CompetitionDetailResponse),
+        (status = 200, description = "Competition with full details including category-merged participants and computed rankings", body = CompetitionDetailResponse),
         (status = 404, description = "Competition not found")
     ),
     tag = "competitions"

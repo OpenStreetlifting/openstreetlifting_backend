@@ -1,45 +1,50 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT group_id, athlete_id, bodyweight, rank, is_disqualified,\n                        created_at, disqualified_reason, ris_score\n                 FROM competition_participants\n                 WHERE group_id = $1\n                 ORDER BY rank NULLS LAST",
+  "query": "SELECT participant_id, group_id, athlete_id, bodyweight, rank, is_disqualified,\n                        created_at, disqualified_reason, ris_score\n                 FROM competition_participants\n                 WHERE group_id = $1\n                 ORDER BY rank NULLS LAST",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "group_id",
+        "name": "participant_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "athlete_id",
+        "name": "group_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 2,
+        "name": "athlete_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
         "name": "bodyweight",
         "type_info": "Numeric"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "rank",
         "type_info": "Int4"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "is_disqualified",
         "type_info": "Bool"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "disqualified_reason",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "ris_score",
         "type_info": "Numeric"
       }
@@ -52,6 +57,7 @@
     "nullable": [
       false,
       false,
+      false,
       true,
       true,
       false,
@@ -60,5 +66,5 @@
       true
     ]
   },
-  "hash": "71b5f99138619fa7743fa60088d103b06d21e248b9a851ee975b5a92d3dd62a3"
+  "hash": "4585d753151a1c92c2d4621a25de5ce0640ea453b2c191a2feca033bd34a9744"
 }
