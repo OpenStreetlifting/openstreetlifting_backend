@@ -3,7 +3,7 @@ use storage::{
     Database,
     dto::competition::{
         CompetitionDetailResponse, CompetitionListResponse, CompetitionResponse,
-        CreateCompetitionRequest, RankingScopeQuery, UpdateCompetitionRequest,
+        CreateCompetitionRequest, UpdateCompetitionRequest,
     },
     repository::competition::CompetitionRepository,
 };
@@ -73,11 +73,10 @@ pub async fn get_competition(
     get,
     path = "/api/competitions/{slug}/detailed",
     params(
-        ("slug" = String, Path, description = "Competition slug"),
-        ("ranking_scope" = Option<String>, Query, description = "Ranking scope: 'group' (default), 'category', or 'competition'")
+        ("slug" = String, Path, description = "Competition slug")
     ),
     responses(
-        (status = 200, description = "Competition with full details including groups, participants, and lifts", body = CompetitionDetailResponse),
+        (status = 200, description = "Competition with full details including category-merged participants and computed rankings", body = CompetitionDetailResponse),
         (status = 404, description = "Competition not found")
     ),
     tag = "competitions"
@@ -85,13 +84,10 @@ pub async fn get_competition(
 pub async fn get_competition_detailed(
     db: web::Data<Database>,
     path: web::Path<String>,
-    query: web::Query<RankingScopeQuery>,
 ) -> WebResult<HttpResponse> {
     let slug = path.into_inner();
     let repo = CompetitionRepository::new(db.pool());
-    let competition = repo
-        .find_by_slug_detailed(&slug, query.ranking_scope.clone())
-        .await?;
+    let competition = repo.find_by_slug_detailed(&slug).await?;
 
     Ok(HttpResponse::Ok().json(competition))
 }
