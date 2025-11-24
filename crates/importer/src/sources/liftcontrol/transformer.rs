@@ -602,47 +602,6 @@ impl<'a> LiftControlTransformer<'a> {
         info!("Computed RIS for {} participants", participant_count);
         Ok(())
     }
-
-    /// Generate unique slug from first and last name
-    async fn generate_unique_slug(
-        &self,
-        first_name: &str,
-        last_name: &str,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ) -> Result<String> {
-        let base_slug = format!("{}-{}", first_name, last_name)
-            .to_lowercase()
-            .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '-')
-            .collect::<String>()
-            .split('-')
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<&str>>()
-            .join("-");
-
-        let base_slug = if base_slug.is_empty() {
-            "athlete".to_string()
-        } else {
-            base_slug
-        };
-
-        let mut final_slug = base_slug.clone();
-        let mut counter = 2;
-
-        while sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM athletes WHERE slug = $1)",
-            final_slug
-        )
-        .fetch_one(&mut **tx)
-        .await?
-        .unwrap_or(false)
-        {
-            final_slug = format!("{}-{}", base_slug, counter);
-            counter += 1;
-        }
-
-        Ok(final_slug)
-    }
 }
 
 fn map_gender(genre: &str) -> String {

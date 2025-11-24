@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE competition_participants\n                    SET ris_score = $1\n                    WHERE participant_id = $2\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4e5407289d2c5203bc40f92e04afa8fb970076f2ccfd9115d60c51724989480c"
+}

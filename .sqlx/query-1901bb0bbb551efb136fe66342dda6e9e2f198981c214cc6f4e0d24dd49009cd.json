@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT formula_id, year, effective_from, effective_until, is_current,\n                   men_a, men_k, men_b, men_v, men_q,\n                   women_a, women_k, women_b, women_v, women_q,\n                   notes, created_at\n            FROM ris_formula_versions\n            WHERE is_current = true\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "formula_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "year",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "effective_from",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "effective_until",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_current",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "men_a",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "men_k",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "men_b",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "men_v",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "men_q",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "women_a",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "women_k",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "women_b",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "women_v",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "women_q",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "1901bb0bbb551efb136fe66342dda6e9e2f198981c214cc6f4e0d24dd49009cd"
+}

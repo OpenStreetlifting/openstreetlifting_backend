@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO ris_scores_history (participant_id, formula_id, ris_score, bodyweight, total_weight)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (participant_id, formula_id)\n            DO UPDATE SET\n                ris_score = EXCLUDED.ris_score,\n                bodyweight = EXCLUDED.bodyweight,\n                total_weight = EXCLUDED.total_weight,\n                computed_at = CURRENT_TIMESTAMP\n            RETURNING ris_score_id, participant_id, formula_id, ris_score, bodyweight, total_weight, computed_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ris_score_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "participant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "formula_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "ris_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "bodyweight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_weight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "computed_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bc07c54b4b6b06adf98adb73365ced64a5f4829a7f090a232d50f9d0372f516a"
+}

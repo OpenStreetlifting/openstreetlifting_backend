@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                cp.participant_id,\n                cp.athlete_id,\n                cp.bodyweight,\n                a.gender,\n                COALESCE(SUM(l.max_weight), 0) as \"total!: rust_decimal::Decimal\"\n            FROM competition_participants cp\n            INNER JOIN competition_groups cg ON cp.group_id = cg.group_id\n            INNER JOIN athletes a ON cp.athlete_id = a.athlete_id\n            LEFT JOIN lifts l ON l.participant_id = cp.participant_id\n            WHERE cg.competition_id = $1\n            GROUP BY cp.participant_id, cp.athlete_id, cp.bodyweight, a.gender\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "participant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "athlete_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "bodyweight",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "gender",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "total!: rust_decimal::Decimal",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "39f5fc2b175a1aa8d1c8b5f795eaed1f055e7ee7dfd8860b5e39217cb089a4be"
+}
