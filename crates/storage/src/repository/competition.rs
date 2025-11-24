@@ -143,10 +143,7 @@ impl<'a> CompetitionRepository<'a> {
     }
 
     /// Compute category rankings for all participants in a competition
-    async fn compute_category_rankings(
-        &self,
-        competition_id: Uuid,
-    ) -> Result<HashMap<Uuid, i32>> {
+    async fn compute_category_rankings(&self, competition_id: Uuid) -> Result<HashMap<Uuid, i32>> {
         let rankings = sqlx::query!(
             r#"
             WITH participant_totals AS (

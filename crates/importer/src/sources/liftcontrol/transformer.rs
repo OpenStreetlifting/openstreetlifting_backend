@@ -305,13 +305,10 @@ impl<'a> LiftControlTransformer<'a> {
     ) -> Result<Uuid> {
         let gender = map_gender(&category_info.genre);
 
-        // Create normalized name to ensure consistent ordering and prevent duplicates
-        // like "John Smith" and "Smith John" from being treated as different athletes
         let normalized_name =
             NormalizedAthleteName::new(&athlete_info.first_name, &athlete_info.last_name);
         let (db_first_name, db_last_name) = normalized_name.as_database_tuple();
 
-        // Check using normalized names
         let existing = sqlx::query_scalar!(
             r#"
             SELECT athlete_id as "athlete_id: Uuid" FROM athletes
@@ -329,10 +326,10 @@ impl<'a> LiftControlTransformer<'a> {
             return Ok(id);
         }
 
-        // Generate unique slug
-        let slug = self.generate_unique_slug(db_first_name, db_last_name, &mut **tx).await?;
+        let slug = self
+            .generate_unique_slug(db_first_name, db_last_name, &mut *tx)
+            .await?;
 
-        // Insert using normalized names
         let athlete_id = sqlx::query_scalar!(
             r#"
             INSERT INTO athletes (first_name, last_name, gender, country, nationality, slug)

@@ -4,7 +4,6 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
 pub struct CreateCompetitionRequest {
     #[validate(length(
