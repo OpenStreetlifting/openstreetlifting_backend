@@ -152,10 +152,7 @@ impl<'a> RankingRepository<'a> {
         query.push(" OFFSET ");
         query.push_bind(offset);
 
-        let rows: Vec<RankingRow> = query
-            .build_query_as()
-            .fetch_all(self.pool)
-            .await?;
+        let rows: Vec<RankingRow> = query.build_query_as().fetch_all(self.pool).await?;
 
         let entries = rows
             .into_iter()
