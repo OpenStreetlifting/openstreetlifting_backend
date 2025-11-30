@@ -3,18 +3,37 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Movement {
+    Muscleup,
+    Pullup,
+    Dips,
+    Squat,
+    #[default]
+    Total,
+}
+
+impl Movement {
+    pub fn as_column(&self) -> &'static str {
+        match self {
+            Self::Muscleup => "muscleup",
+            Self::Pullup => "pullup",
+            Self::Dips => "dips",
+            Self::Squat => "squat",
+            Self::Total => "total",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GlobalRankingFilter {
     #[serde(flatten)]
     pub pagination: super::common::PaginationParams,
     pub gender: Option<String>,
     pub country: Option<String>,
-    #[serde(default = "default_movement")]
-    pub movement: String,
-}
-
-fn default_movement() -> String {
-    "total".to_string()
+    #[serde(default)]
+    pub movement: Movement,
 }
 
 impl GlobalRankingFilter {
@@ -28,14 +47,6 @@ impl GlobalRankingFilter {
             return Err("gender must be 'M' or 'F'".to_string());
         }
 
-        let valid_movements = ["muscleup", "pullup", "dips", "squat", "total"];
-        if !valid_movements.contains(&self.movement.as_str()) {
-            return Err(format!(
-                "movement must be one of: {}",
-                valid_movements.join(", ")
-            ));
-        }
-
         Ok(())
     }
 }
@@ -44,6 +55,7 @@ impl GlobalRankingFilter {
 pub struct GlobalRankingEntry {
     pub rank: i64,
     pub athlete: AthleteInfo,
+    pub ris: f64,
     pub total: f64,
     pub muscleup: f64,
     pub pullup: f64,
@@ -60,6 +72,7 @@ pub struct AthleteInfo {
     pub slug: String,
     pub country: String,
     pub gender: String,
+    pub bodyweight: Option<f64>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
