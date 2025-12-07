@@ -2,35 +2,23 @@
 
 ## What is it?
 
-The canonical format is a JSON file that all competition data sources must produce before importing to the database.
+The canonical format is a JSON file that all competition data sources must produce before an importer translate the format into database.
 
-Think of it as a common language: LiftControl API, PDFs, and CSV files all speak different languages, but they all translate to this same JSON format.
+# Convention
 
-## Design Philosophy
-
-**The canonical format contains only essential, source-provided data.**
-
-This means:
 - **No computed fields** - Rankings, best lifts, total scores, RIS scores are calculated by the application, not stored in the canonical format
-- **No derived data** - Judge counts per attempt are not stored; only whether the lift was successful
 - **Common denominator** - Only information that can reasonably be extracted from any source type (PDF, CSV, API)
-- **Raw truth** - The format represents what actually happened at the competition, not calculations derived from it
 
 ## Why use it?
 
-1. **Human review** - You can open the JSON file and fix errors before importing
-2. **Version control** - JSON files are stored in git, creating an audit trail
-3. **Reusable importer** - One importer works for all data sources
-4. **Testing** - Easy to create test data as JSON files
-5. **Universal** - Works with any data source by focusing on essentials
+1. Human review: plain text file can be reviewed and corrected before importing into database
+2. Version control: imported data are available, in their canonical format inside git.
 
 ## File location
 
 Files are saved in: `./imports/{competition-slug}/{timestamp}_{source}.json`
 
-Example: `./imports/annecy-2025/2025-01-30T10-30-00_liftcontrol.json`
-
-## JSON Structure
+## Structure
 
 ### Top level
 
@@ -56,10 +44,6 @@ Where the data came from and when.
   "extractor": "liftcontrol-api-v1"
 }
 ```
-
-- `type`: One of: `liftcontrol`, `pdf`, `csv`, `html`, `manual`
-- `extracted_at`: ISO 8601 datetime in UTC
-- `extractor`: Tool name that created this file
 
 ### Competition
 
@@ -88,18 +72,14 @@ List of exercises in the competition, in display order.
 
 ```json
 [
-  {"name": "Pull-up", "order": 1},
-  {"name": "Dips", "order": 2},
-  {"name": "Muscle-up", "order": 3},
-  {"name": "Squat", "order": 4}
+  { "name": "Pull-up", "order": 1 },
+  { "name": "Dips", "order": 2 },
+  { "name": "Muscle-up", "order": 3 },
+  { "name": "Squat", "order": 4 }
 ]
 ```
 
 **Movement names must use canonical names:**
-- `Pull-up` (not "Traction" or "Pullup")
-- `Dips` (not "Dip")
-- `Muscle-up` (not "Muscleup")
-- `Squat`, `Bench Press`, `Deadlift`
 
 ### Categories
 
@@ -196,8 +176,8 @@ Optional: `no_rep_reason`
     "number_of_judges": 3
   },
   "movements": [
-    {"name": "Pull-up", "order": 1},
-    {"name": "Dips", "order": 2}
+    { "name": "Pull-up", "order": 1 },
+    { "name": "Dips", "order": 2 }
   ],
   "categories": [
     {
@@ -245,6 +225,7 @@ Optional: `no_rep_reason`
 The importer validates the JSON before inserting to database:
 
 **Errors** (must fix):
+
 - Missing required fields
 - Invalid gender (must be M or F)
 - Invalid dates
@@ -252,52 +233,7 @@ The importer validates the JSON before inserting to database:
 - Negative weights
 
 **Warnings** (should review):
+
 - Missing optional fields like bodyweight
 - Unusual weight values
 - Duplicate athletes in same competition
-
-## Source-specific metadata
-
-Each source can add optional metadata blocks.
-
-### LiftControl
-
-```json
-{
-  "liftcontrol_metadata": {
-    "contest_id": 123
-  }
-}
-```
-
-Add this at the top level. For athletes:
-
-```json
-{
-  "liftcontrol_athlete_metadata": {
-    "athlete_id": 456,
-    "reglage_dips": "5"
-  }
-}
-```
-
-### PDF extraction
-
-```json
-{
-  "pdf_metadata": {
-    "extraction_confidence": 0.95,
-    "pages_processed": [1, 2, 3],
-    "warnings": [
-      "Bodyweight missing for athlete 'John Doe'"
-    ]
-  }
-}
-```
-
-## Workflow
-
-1. **Extract** - Run exporter (LiftControl, PDF, etc.) to create canonical JSON
-2. **Review** - Open JSON file, check for errors, fix if needed
-3. **Import** - Run importer on canonical JSON to insert into database
-4. **Commit** - Commit JSON file to git for audit trail
