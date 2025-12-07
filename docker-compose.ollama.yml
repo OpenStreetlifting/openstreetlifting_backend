@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: openstreetlifting_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      # Persistent model storage
+      - ollama_models:/root/.ollama
+    networks:
+      - app-network
+    # Apple Silicon optimization
+    deploy:
+      resources:
+        limits:
+          # Limit to 6GB RAM to leave room for other services
+          memory: 6G
+    environment:
+      # Optimize for M2 with 8GB RAM
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=5m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Ollama web UI for testing and debugging
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openstreetlifting_ollama_webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    volumes:
+      - ollama_webui_data:/app/backend/data
+    networks:
+      - app-network
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    profiles:
+      - webui
+
+volumes:
+  ollama_models:
+    driver: local
+  ollama_webui_data:
+    driver: local
+
+networks:
+  app-network:
+    external: true
+    name: openstreetlifting_backend_app-network

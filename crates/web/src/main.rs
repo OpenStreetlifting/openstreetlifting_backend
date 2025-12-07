@@ -71,11 +71,6 @@ use middleware::auth::ApiKeys;
             storage::models::AthleteSocial,
         )
     ),
-    tags(
-        (name = "competitions", description = "Public competition endpoints"),
-        (name = "athletes", description = "Public athlete endpoints"),
-        (name = "rankings", description = "Public ranking endpoints"),
-    ),
     modifiers(&SecurityAddon)
 )]
 struct ApiDoc;

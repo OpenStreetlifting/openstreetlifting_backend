@@ -24,4 +24,10 @@ pub enum ImporterError {
 
     #[error("Validation error: {0}")]
     ValidationError(String),
+
+    #[error("Extraction error: {0}")]
+    ExtractionError(String),
+
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
 }

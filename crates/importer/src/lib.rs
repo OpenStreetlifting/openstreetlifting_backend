@@ -1,5 +1,6 @@
 pub mod canonical;
 pub mod error;
+pub mod extractors;
 pub mod movement_mapper;
 pub mod sources;
 pub mod traits;
