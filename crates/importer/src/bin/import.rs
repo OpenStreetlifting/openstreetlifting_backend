@@ -269,9 +269,7 @@ async fn process_canonical_file(
         }
     }
 
-    if !validate_only
-        && let Some(pool) = pool
-    {
+    if !validate_only && let Some(pool) = pool {
         let transformer = CanonicalTransformer::new(pool);
         transformer.import_to_database(canonical).await?;
     }

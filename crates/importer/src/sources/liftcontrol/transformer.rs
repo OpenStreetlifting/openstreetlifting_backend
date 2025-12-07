@@ -621,9 +621,7 @@ fn parse_category_name(name: &str) -> ParsedCategory {
         name, weight_class
     );
 
-    ParsedCategory {
-        weight_class,
-    }
+    ParsedCategory { weight_class }
 }
 
 fn get_movement_settings(movement_name: &str, athlete_info: &AthleteInfo) -> Option<String> {
