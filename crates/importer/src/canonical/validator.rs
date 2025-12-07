@@ -17,40 +17,60 @@ impl CanonicalValidator {
         }
 
         if canonical.competition.name.is_empty() {
-            report.errors.push("Competition name is required".to_string());
+            report
+                .errors
+                .push("Competition name is required".to_string());
         }
         if canonical.competition.slug.is_empty() {
-            report.errors.push("Competition slug is required".to_string());
+            report
+                .errors
+                .push("Competition slug is required".to_string());
         }
         if canonical.competition.country.is_empty() {
-            report.errors.push("Competition country is required".to_string());
+            report
+                .errors
+                .push("Competition country is required".to_string());
         }
         if canonical.competition.end_date < canonical.competition.start_date {
-            report.errors.push("Competition end_date must be >= start_date".to_string());
+            report
+                .errors
+                .push("Competition end_date must be >= start_date".to_string());
         }
 
         if canonical.competition.federation.name.is_empty() {
-            report.errors.push("Federation name is required".to_string());
+            report
+                .errors
+                .push("Federation name is required".to_string());
         }
 
         if canonical.competition.venue.is_none() {
-            report.warnings.push("Competition venue is not specified".to_string());
+            report
+                .warnings
+                .push("Competition venue is not specified".to_string());
         }
         if canonical.competition.city.is_none() {
-            report.warnings.push("Competition city is not specified".to_string());
+            report
+                .warnings
+                .push("Competition city is not specified".to_string());
         }
         if canonical.competition.number_of_judges.is_none() {
-            report.warnings.push("Number of judges is not specified".to_string());
+            report
+                .warnings
+                .push("Number of judges is not specified".to_string());
         }
 
         if canonical.movements.is_empty() {
-            report.errors.push("At least one movement is required".to_string());
+            report
+                .errors
+                .push("At least one movement is required".to_string());
         }
 
         let mut movement_names = HashSet::new();
         for movement in &canonical.movements {
             if movement.name.is_empty() {
-                report.errors.push("Movement name cannot be empty".to_string());
+                report
+                    .errors
+                    .push("Movement name cannot be empty".to_string());
             }
             if movement.order < 1 {
                 report.errors.push(format!(
@@ -59,20 +79,23 @@ impl CanonicalValidator {
                 ));
             }
             if !movement_names.insert(&movement.name) {
-                report.errors.push(format!(
-                    "Duplicate movement name: '{}'",
-                    movement.name
-                ));
+                report
+                    .errors
+                    .push(format!("Duplicate movement name: '{}'", movement.name));
             }
         }
 
         if canonical.categories.is_empty() {
-            report.errors.push("At least one category is required".to_string());
+            report
+                .errors
+                .push("At least one category is required".to_string());
         }
 
         for category in &canonical.categories {
             if category.name.is_empty() {
-                report.errors.push("Category name cannot be empty".to_string());
+                report
+                    .errors
+                    .push("Category name cannot be empty".to_string());
             }
             if category.gender != "M" && category.gender != "F" {
                 report.errors.push(format!(
@@ -82,14 +105,14 @@ impl CanonicalValidator {
             }
 
             if category.athletes.is_empty() {
-                report.warnings.push(format!(
-                    "Category '{}' has no athletes",
-                    category.name
-                ));
+                report
+                    .warnings
+                    .push(format!("Category '{}' has no athletes", category.name));
             }
 
             for (idx, athlete) in category.athletes.iter().enumerate() {
-                let athlete_label = format!("{}. {} {}", idx + 1, athlete.first_name, athlete.last_name);
+                let athlete_label =
+                    format!("{}. {} {}", idx + 1, athlete.first_name, athlete.last_name);
 
                 if athlete.first_name.is_empty() {
                     report.errors.push(format!(
@@ -104,24 +127,21 @@ impl CanonicalValidator {
                     ));
                 }
                 if athlete.country.is_empty() {
-                    report.errors.push(format!(
-                        "Athlete '{}' has empty country",
-                        athlete_label
-                    ));
+                    report
+                        .errors
+                        .push(format!("Athlete '{}' has empty country", athlete_label));
                 }
 
                 if athlete.bodyweight.is_none() {
-                    report.warnings.push(format!(
-                        "Athlete '{}' is missing bodyweight",
-                        athlete_label
-                    ));
+                    report
+                        .warnings
+                        .push(format!("Athlete '{}' is missing bodyweight", athlete_label));
                 }
 
                 if athlete.lifts.is_empty() {
-                    report.warnings.push(format!(
-                        "Athlete '{}' has no lifts",
-                        athlete_label
-                    ));
+                    report
+                        .warnings
+                        .push(format!("Athlete '{}' has no lifts", athlete_label));
                 }
 
                 for lift in &athlete.lifts {

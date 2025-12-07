@@ -1,10 +1,8 @@
 use clap::{Parser, Subcommand};
 use importer::{
-    ImportContext, LiftControlCompetitionId, LiftControlRegistry,
+    LiftControlCompetitionId, LiftControlRegistry,
     canonical::{
-        models::CanonicalFormat,
-        transformer::CanonicalTransformer,
-        validator::CanonicalValidator,
+        models::CanonicalFormat, transformer::CanonicalTransformer, validator::CanonicalValidator,
     },
     sources::liftcontrol::{LiftControlClient, LiftControlExporter},
 };
@@ -159,7 +157,10 @@ async fn handle_canonical_import(
         .connect(database_url)
         .await?;
 
-    tracing::info!("Importing {} categories to database...", canonical.categories.len());
+    tracing::info!(
+        "Importing {} categories to database...",
+        canonical.categories.len()
+    );
     let transformer = CanonicalTransformer::new(&pool);
     transformer.import_to_database(canonical).await?;
 
@@ -173,7 +174,10 @@ async fn handle_bulk_import(
     validate_only: bool,
     database_url: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    tracing::info!("Scanning directory for canonical JSON files: {}", directory.display());
+    tracing::info!(
+        "Scanning directory for canonical JSON files: {}",
+        directory.display()
+    );
 
     let mut json_files = Vec::new();
     let mut entries = tokio::fs::read_dir(&directory).await?;
@@ -184,11 +188,11 @@ async fn handle_bulk_import(
             let mut sub_entries = tokio::fs::read_dir(&path).await?;
             while let Some(sub_entry) = sub_entries.next_entry().await? {
                 let sub_path = sub_entry.path();
-                if sub_path.extension().map_or(false, |ext| ext == "json") {
+                if sub_path.extension().is_some_and(|ext| ext == "json") {
                     json_files.push(sub_path);
                 }
             }
-        } else if path.extension().map_or(false, |ext| ext == "json") {
+        } else if path.extension().is_some_and(|ext| ext == "json") {
             json_files.push(path);
         }
     }
@@ -203,10 +207,12 @@ async fn handle_bulk_import(
 
     let pool = if !validate_only {
         tracing::info!("Connecting to database...");
-        Some(PgPoolOptions::new()
-            .max_connections(5)
-            .connect(database_url)
-            .await?)
+        Some(
+            PgPoolOptions::new()
+                .max_connections(5)
+                .connect(database_url)
+                .await?,
+        )
     } else {
         None
     };
@@ -215,7 +221,12 @@ async fn handle_bulk_import(
     let mut error_count = 0;
 
     for (idx, file_path) in json_files.iter().enumerate() {
-        tracing::info!("[{}/{}] Processing: {}", idx + 1, json_files.len(), file_path.display());
+        tracing::info!(
+            "[{}/{}] Processing: {}",
+            idx + 1,
+            json_files.len(),
+            file_path.display()
+        );
 
         match process_canonical_file(file_path, validate_only, pool.as_ref()).await {
             Ok(_) => {
@@ -229,7 +240,11 @@ async fn handle_bulk_import(
         }
     }
 
-    tracing::info!("Summary: {} succeeded, {} failed", success_count, error_count);
+    tracing::info!(
+        "Summary: {} succeeded, {} failed",
+        success_count,
+        error_count
+    );
 
     if error_count > 0 {
         return Err(format!("{} file(s) failed to import", error_count).into());
@@ -254,11 +269,11 @@ async fn process_canonical_file(
         }
     }
 
-    if !validate_only {
-        if let Some(pool) = pool {
-            let transformer = CanonicalTransformer::new(pool);
-            transformer.import_to_database(canonical).await?;
-        }
+    if !validate_only
+        && let Some(pool) = pool
+    {
+        let transformer = CanonicalTransformer::new(pool);
+        transformer.import_to_database(canonical).await?;
     }
 
     Ok(())
@@ -275,7 +290,7 @@ fn list_competitions(registry: &LiftControlRegistry) {
 
 fn parse_competition_id(
     comp_name: &str,
-    registry: &LiftControlRegistry,
+    _registry: &LiftControlRegistry,
 ) -> Result<LiftControlCompetitionId, String> {
     comp_name.parse::<LiftControlCompetitionId>().map_err(|_| {
         format!(

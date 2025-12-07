@@ -124,7 +124,9 @@ impl LiftControlExporter {
 
             if let Some(athletes_data) = results.results.get(category_id_str) {
                 for athlete_data in athletes_data.values() {
-                    category_data.athletes.push(self.build_athlete_data(athlete_data, &results.movements)?);
+                    category_data
+                        .athletes
+                        .push(self.build_athlete_data(athlete_data, &results.movements)?);
                 }
             }
         }
@@ -137,14 +139,11 @@ impl LiftControlExporter {
         athlete_data: &liftcontrol_models::AthleteData,
         movements: &HashMap<String, liftcontrol_models::Movement>,
     ) -> Result<canonical::AthleteData> {
-        let bodyweight = athlete_data
-            .athlete_info
-            .pesee
-            .and_then(|w| {
-                Decimal::from_str(&w.to_string())
-                    .ok()
-                    .filter(|d| *d > Decimal::ZERO)
-            });
+        let bodyweight = athlete_data.athlete_info.pesee.and_then(|w| {
+            Decimal::from_str(&w.to_string())
+                .ok()
+                .filter(|d| *d > Decimal::ZERO)
+        });
 
         let mut lifts = Vec::new();
         let mut movement_list: Vec<_> = movements.values().collect();

@@ -17,9 +17,12 @@ impl<'a> CanonicalTransformer<'a> {
     pub async fn import_to_database(&self, canonical: CanonicalFormat) -> Result<()> {
         let mut tx = self.pool.begin().await?;
 
-        let competition_id = self.upsert_competition(&canonical.competition, &mut tx).await?;
+        let competition_id = self
+            .upsert_competition(&canonical.competition, &mut tx)
+            .await?;
 
-        self.upsert_competition_movements(competition_id, &canonical.movements, &mut tx).await?;
+        self.upsert_competition_movements(competition_id, &canonical.movements, &mut tx)
+            .await?;
 
         for category in &canonical.categories {
             let category_id = self.upsert_category(category, &mut tx).await?;
@@ -32,12 +35,14 @@ impl<'a> CanonicalTransformer<'a> {
                     category_id,
                     &canonical.movements,
                     &mut tx,
-                ).await?;
+                )
+                .await?;
             }
         }
 
         info!("Computing RIS scores for all participants...");
-        self.compute_ris_for_competition(competition_id, canonical.competition.start_date, &mut tx).await?;
+        self.compute_ris_for_competition(competition_id, canonical.competition.start_date, &mut tx)
+            .await?;
 
         tx.commit().await?;
         Ok(())
@@ -48,7 +53,9 @@ impl<'a> CanonicalTransformer<'a> {
         competition: &CompetitionData,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Uuid> {
-        let federation_id = self.get_or_create_federation(&competition.federation, tx).await?;
+        let federation_id = self
+            .get_or_create_federation(&competition.federation, tx)
+            .await?;
 
         let competition_id = sqlx::query_scalar!(
             r#"
@@ -222,7 +229,8 @@ impl<'a> CanonicalTransformer<'a> {
                 lift,
                 athlete,
                 &mut *tx,
-            ).await?;
+            )
+            .await?;
         }
 
         Ok(())
@@ -256,7 +264,9 @@ impl<'a> CanonicalTransformer<'a> {
             return Ok(id);
         }
 
-        let slug = self.generate_unique_slug(db_first_name, db_last_name, &mut *tx).await?;
+        let slug = self
+            .generate_unique_slug(db_first_name, db_last_name, &mut *tx)
+            .await?;
 
         let athlete_id = sqlx::query_scalar!(
             r#"
@@ -326,17 +336,22 @@ impl<'a> CanonicalTransformer<'a> {
         athlete: &AthleteData,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {
-        let max_weight = lift.attempts
+        let max_weight = lift
+            .attempts
             .iter()
             .filter(|a| a.is_successful)
             .map(|a| a.weight)
             .max();
 
         let settings = if lift.movement == "Dips" {
-            athlete.liftcontrol_athlete_metadata.as_ref()
+            athlete
+                .liftcontrol_athlete_metadata
+                .as_ref()
                 .and_then(|m| m.reglage_dips.clone())
         } else if lift.movement == "Squat" {
-            athlete.liftcontrol_athlete_metadata.as_ref()
+            athlete
+                .liftcontrol_athlete_metadata
+                .as_ref()
                 .and_then(|m| m.reglage_squat.clone())
         } else {
             None
@@ -374,7 +389,8 @@ impl<'a> CanonicalTransformer<'a> {
         .await?;
 
         for attempt in &lift.attempts {
-            self.import_attempt(participant.participant_id, &lift.movement, attempt, tx).await?;
+            self.import_attempt(participant.participant_id, &lift.movement, attempt, tx)
+                .await?;
         }
 
         Ok(())
@@ -431,14 +447,15 @@ impl<'a> CanonicalTransformer<'a> {
         competition_date: chrono::NaiveDate,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {
-        let formula = storage::services::ris_computation::get_formula_for_date(self.pool, competition_date)
-            .await
-            .map_err(|e| {
-                ImporterError::TransformationError(format!(
-                    "No RIS formula available for date {}: {}",
-                    competition_date, e
-                ))
-            })?;
+        let formula =
+            storage::services::ris_computation::get_formula_for_date(self.pool, competition_date)
+                .await
+                .map_err(|e| {
+                    ImporterError::TransformationError(format!(
+                        "No RIS formula available for date {}: {}",
+                        competition_date, e
+                    ))
+                })?;
 
         let participants = sqlx::query!(
             r#"

@@ -16,6 +16,15 @@ pub struct LiftControlTransformer<'a> {
     metadata: CompetitionMetadata,
 }
 
+struct LiftContext<'a> {
+    competition_id: Uuid,
+    category_id: Uuid,
+    athlete_id: Uuid,
+    movement: &'a Movement,
+    movement_results: &'a MovementResults,
+    athlete_info: &'a AthleteInfo,
+}
+
 impl<'a> LiftControlTransformer<'a> {
     pub fn new(pool: &'a PgPool, base_slug: String, metadata: CompetitionMetadata) -> Self {
         Self {
@@ -255,16 +264,15 @@ impl<'a> LiftControlTransformer<'a> {
 
         for movement in movement_list {
             if let Some(movement_results) = athlete_data.results.get(&movement.id.to_string()) {
-                self.import_lift(
+                let lift_context = LiftContext {
                     competition_id,
                     category_id,
                     athlete_id,
                     movement,
                     movement_results,
-                    &athlete_data.athlete_info,
-                    tx,
-                )
-                .await?;
+                    athlete_info: &athlete_data.athlete_info,
+                };
+                self.import_lift(lift_context, tx).await?;
             }
         }
 
@@ -365,25 +373,20 @@ impl<'a> LiftControlTransformer<'a> {
 
     async fn import_lift(
         &self,
-        competition_id: Uuid,
-        category_id: Uuid,
-        athlete_id: Uuid,
-        movement: &Movement,
-        movement_results: &MovementResults,
-        athlete_info: &AthleteInfo,
+        context: LiftContext<'_>,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<()> {
         let mapper = LiftControlMovementMapper;
-        let canonical_movement = mapper.map_movement(&movement.name).ok_or_else(|| {
+        let canonical_movement = mapper.map_movement(&context.movement.name).ok_or_else(|| {
             ImporterError::TransformationError(format!(
                 "Unknown movement '{}' for LiftControl importer",
-                movement.name
+                context.movement.name
             ))
         })?;
 
         let movement_name = canonical_movement.as_str();
-        let max_weight = convert_weight(movement_results.max);
-        let settings = get_movement_settings(&movement.name, athlete_info);
+        let max_weight = convert_weight(context.movement_results.max);
+        let settings = get_movement_settings(&context.movement.name, context.athlete_info);
 
         // Get the participant_id from competition_participants
         let participant = sqlx::query!(
@@ -392,9 +395,9 @@ impl<'a> LiftControlTransformer<'a> {
             FROM competition_participants
             WHERE competition_id = $1 AND category_id = $2 AND athlete_id = $3
             "#,
-            competition_id,
-            category_id,
-            athlete_id
+            context.competition_id,
+            context.category_id,
+            context.athlete_id
         )
         .fetch_one(&mut **tx)
         .await?;
@@ -419,7 +422,7 @@ impl<'a> LiftControlTransformer<'a> {
         .await?;
 
         for i in 1..=3 {
-            if let Some(Some(attempt)) = movement_results.results.get(&i.to_string()) {
+            if let Some(Some(attempt)) = context.movement_results.results.get(&i.to_string()) {
                 self.import_attempt(participant.participant_id, movement_name, attempt, tx)
                     .await?;
             }
@@ -589,7 +592,6 @@ fn map_gender(genre: &str) -> String {
 
 struct ParsedCategory {
     weight_class: String,
-    group_name: String,
 }
 
 fn parse_category_name(name: &str) -> ParsedCategory {
@@ -614,27 +616,13 @@ fn parse_category_name(name: &str) -> ParsedCategory {
         "Open".to_string()
     };
 
-    let group_suffix = if let Some(groupe_idx) = name.to_lowercase().find("groupe") {
-        let group_part = &name[groupe_idx..];
-        if let Some(letter) = group_part.chars().rev().find(|c| c.is_alphabetic()) {
-            format!("Groupe {}", letter.to_uppercase())
-        } else {
-            "Groupe A".to_string()
-        }
-    } else {
-        "Groupe A".to_string()
-    };
-
-    let group_name = format!("{} {}", weight_class, group_suffix);
-
     info!(
-        "Parsed category: '{}' -> weight_class='{}', group_name='{}'",
-        name, weight_class, group_name
+        "Parsed category: '{}' -> weight_class='{}'",
+        name, weight_class
     );
 
     ParsedCategory {
         weight_class,
-        group_name,
     }
 }
 
