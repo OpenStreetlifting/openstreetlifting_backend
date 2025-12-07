@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(DISTINCT cp.competition_id)::bigint as \"count!\"\n            FROM competition_participants cp\n            WHERE cp.athlete_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6ab14200810d14e0292e4e53b7ae3b1b5121b4ed0028c28bfd86b47e188a1776"
+}

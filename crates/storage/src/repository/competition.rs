@@ -9,9 +9,7 @@ use crate::dto::competition::{
     ParticipantDetail,
 };
 use crate::error::{Result, StorageError};
-use crate::models::{
-    Athlete, Category, Competition, CompetitionGroup, CompetitionMovement, Federation, Lift,
-};
+use crate::models::{Athlete, Category, Competition, CompetitionMovement, Federation, Lift};
 
 pub struct CompetitionRepository<'a> {
     pool: &'a PgPool,
@@ -149,14 +147,13 @@ impl<'a> CompetitionRepository<'a> {
             WITH participant_totals AS (
                 SELECT
                     cp.participant_id,
-                    cg.category_id,
+                    cp.category_id,
                     cp.bodyweight,
                     COALESCE(SUM(l.max_weight), 0) as total
                 FROM competition_participants cp
-                JOIN competition_groups cg ON cp.group_id = cg.group_id
                 LEFT JOIN lifts l ON l.participant_id = cp.participant_id
-                WHERE cg.competition_id = $1
-                GROUP BY cp.participant_id, cg.category_id, cp.bodyweight
+                WHERE cp.competition_id = $1
+                GROUP BY cp.participant_id, cp.category_id, cp.bodyweight
             )
             SELECT
                 participant_id,
@@ -199,11 +196,12 @@ impl<'a> CompetitionRepository<'a> {
         .fetch_one(self.pool)
         .await?;
 
-        let groups = sqlx::query_as!(
-            CompetitionGroup,
-            "SELECT group_id, competition_id, category_id, name, max_size, created_at
-             FROM competition_groups
-             WHERE competition_id = $1",
+        let categories = sqlx::query_as!(
+            Category,
+            "SELECT DISTINCT c.category_id, c.name, c.gender, c.weight_class_min, c.weight_class_max
+             FROM categories c
+             JOIN competition_participants cp ON c.category_id = cp.category_id
+             WHERE cp.competition_id = $1",
             competition.competition_id
         )
         .fetch_all(self.pool)
@@ -211,28 +209,17 @@ impl<'a> CompetitionRepository<'a> {
 
         let mut category_map: HashMap<Uuid, (Category, Vec<ParticipantDetail>)> = HashMap::new();
 
-        for group in groups {
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                category_map.entry(group.category_id)
-            {
-                let category = sqlx::query_as!(
-                    Category,
-                    "SELECT category_id, name, gender, weight_class_min, weight_class_max
-                     FROM categories
-                     WHERE category_id = $1",
-                    group.category_id
-                )
-                .fetch_one(self.pool)
-                .await?;
-                e.insert((category, Vec::new()));
-            }
+        for category in categories {
+            category_map.insert(category.category_id, (category.clone(), Vec::new()));
+
             let participants = sqlx::query!(
-                "SELECT participant_id, group_id, athlete_id, bodyweight, rank, is_disqualified,
+                "SELECT participant_id, competition_id, category_id, athlete_id, bodyweight, rank, is_disqualified,
                         created_at, disqualified_reason, ris_score
                  FROM competition_participants
-                 WHERE group_id = $1
+                 WHERE competition_id = $1 AND category_id = $2
                  ORDER BY rank NULLS LAST",
-                group.group_id
+                competition.competition_id,
+                category.category_id
             )
             .fetch_all(self.pool)
             .await?;
@@ -255,12 +242,8 @@ impl<'a> CompetitionRepository<'a> {
                     "SELECT lift_id, participant_id, movement_name, max_weight,
                             equipment_setting, updated_at
                      FROM lifts
-                     WHERE participant_id IN (
-                         SELECT participant_id FROM competition_participants
-                         WHERE group_id = $1 AND athlete_id = $2
-                     )",
-                    group.group_id,
-                    participant.athlete_id
+                     WHERE participant_id = $1",
+                    participant.participant_id
                 )
                 .fetch_all(self.pool)
                 .await?;
@@ -319,7 +302,7 @@ impl<'a> CompetitionRepository<'a> {
                     total,
                 };
 
-                if let Some((_, participants)) = category_map.get_mut(&group.category_id) {
+                if let Some((_, participants)) = category_map.get_mut(&category.category_id) {
                     participants.push(participant_detail);
                 }
             }

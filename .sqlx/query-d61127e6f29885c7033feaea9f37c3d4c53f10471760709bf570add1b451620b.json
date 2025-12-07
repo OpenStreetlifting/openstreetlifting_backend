@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT participant_id\n            FROM competition_participants\n            WHERE group_id = $1 AND athlete_id = $2\n            ",
+  "query": "\n            SELECT participant_id\n            FROM competition_participants\n            WHERE competition_id = $1 AND category_id = $2 AND athlete_id = $3\n            ",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,7 @@
     "parameters": {
       "Left": [
         "Uuid",
+        "Uuid",
         "Uuid"
       ]
     },
@@ -19,5 +20,5 @@
       false
     ]
   },
-  "hash": "099a681f838990b8845efc001b318ba29f6c125000ce9eac8f6e548898d1d125"
+  "hash": "d61127e6f29885c7033feaea9f37c3d4c53f10471760709bf570add1b451620b"
 }

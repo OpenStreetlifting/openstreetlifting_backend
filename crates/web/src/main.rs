@@ -64,7 +64,6 @@ use middleware::auth::ApiKeys;
             storage::models::Movement,
             storage::models::Lift,
             storage::models::Attempt,
-            storage::models::CompetitionGroup,
             storage::models::CompetitionParticipant,
             storage::models::Record,
             storage::models::Social,

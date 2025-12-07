@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT lift_id, participant_id, movement_name, max_weight,\n                            equipment_setting, updated_at\n                     FROM lifts\n                     WHERE participant_id IN (\n                         SELECT participant_id FROM competition_participants\n                         WHERE group_id = $1 AND athlete_id = $2\n                     )",
+  "query": "SELECT lift_id, participant_id, movement_name, max_weight,\n                            equipment_setting, updated_at\n                     FROM lifts\n                     WHERE participant_id = $1",
   "describe": {
     "columns": [
       {
@@ -36,7 +36,6 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Uuid"
       ]
     },
@@ -49,5 +48,5 @@
       true
     ]
   },
-  "hash": "41023defb5411314c9b4db30f6743dd4ad9ca114acaeacc0c8c02283ed8a9ce0"
+  "hash": "9f43d0d8428200ab5ff8d039fb88aafe01ed98feaefab0e27cd34db0395f9c70"
 }
