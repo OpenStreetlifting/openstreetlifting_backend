@@ -119,9 +119,8 @@ impl<'a> AthleteRepository<'a> {
                 cp.ris_score,
                 cp.is_disqualified
             FROM competition_participants cp
-            JOIN competition_groups cg ON cp.group_id = cg.group_id
-            JOIN competitions c ON cg.competition_id = c.competition_id
-            JOIN categories cat ON cg.category_id = cat.category_id
+            JOIN competitions c ON cp.competition_id = c.competition_id
+            JOIN categories cat ON cp.category_id = cat.category_id
             LEFT JOIN lifts l ON l.participant_id = cp.participant_id
             WHERE cp.athlete_id = $1
             GROUP BY c.competition_id, c.name, c.slug, c.start_date, cat.name, cp.rank, cp.ris_score, cp.is_disqualified
@@ -144,8 +143,7 @@ impl<'a> AthleteRepository<'a> {
                 c.start_date as date
             FROM lifts l
             JOIN competition_participants cp ON l.participant_id = cp.participant_id
-            JOIN competition_groups cg ON cp.group_id = cg.group_id
-            JOIN competitions c ON cg.competition_id = c.competition_id
+            JOIN competitions c ON cp.competition_id = c.competition_id
             WHERE cp.athlete_id = $1
             ORDER BY l.movement_name, l.max_weight DESC
             "#,
@@ -157,9 +155,8 @@ impl<'a> AthleteRepository<'a> {
         // Count total competitions
         let total_competitions = sqlx::query_scalar!(
             r#"
-            SELECT COUNT(DISTINCT cg.competition_id)::bigint as "count!"
+            SELECT COUNT(DISTINCT cp.competition_id)::bigint as "count!"
             FROM competition_participants cp
-            JOIN competition_groups cg ON cp.group_id = cg.group_id
             WHERE cp.athlete_id = $1
             "#,
             athlete.athlete_id

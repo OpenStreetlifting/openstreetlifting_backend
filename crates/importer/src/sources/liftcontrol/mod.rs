@@ -1,10 +1,12 @@
 mod client;
+mod exporter;
 mod models;
 mod movement_mapper;
 mod spec;
 mod transformer;
 
 pub use client::LiftControlClient;
+pub use exporter::LiftControlExporter;
 pub use models::*;
 pub use movement_mapper::LiftControlMovementMapper;
 pub use spec::{

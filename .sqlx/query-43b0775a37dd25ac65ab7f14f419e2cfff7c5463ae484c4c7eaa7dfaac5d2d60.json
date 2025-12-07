@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT DISTINCT ON (l.movement_name)\n                l.movement_name,\n                l.max_weight,\n                c.name as competition_name,\n                c.slug as competition_slug,\n                c.start_date as date\n            FROM lifts l\n            JOIN competition_participants cp ON l.participant_id = cp.participant_id\n            JOIN competition_groups cg ON cp.group_id = cg.group_id\n            JOIN competitions c ON cg.competition_id = c.competition_id\n            WHERE cp.athlete_id = $1\n            ORDER BY l.movement_name, l.max_weight DESC\n            ",
+  "query": "\n            SELECT DISTINCT ON (l.movement_name)\n                l.movement_name,\n                l.max_weight,\n                c.name as competition_name,\n                c.slug as competition_slug,\n                c.start_date as date\n            FROM lifts l\n            JOIN competition_participants cp ON l.participant_id = cp.participant_id\n            JOIN competitions c ON cp.competition_id = c.competition_id\n            WHERE cp.athlete_id = $1\n            ORDER BY l.movement_name, l.max_weight DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -42,5 +42,5 @@
       false
     ]
   },
-  "hash": "ae5543defb881f8e9851cd8072ad70109657e515243f19ccc9edb6c2a371ee5f"
+  "hash": "43b0775a37dd25ac65ab7f14f419e2cfff7c5463ae484c4c7eaa7dfaac5d2d60"
 }

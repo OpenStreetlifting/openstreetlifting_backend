@@ -21,4 +21,7 @@ pub enum ImporterError {
 
     #[error("Import error: {0}")]
     ImportError(String),
+
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }

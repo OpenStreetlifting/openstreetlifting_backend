@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT category_id, name, gender, weight_class_min, weight_class_max\n                     FROM categories\n                     WHERE category_id = $1",
+  "query": "SELECT DISTINCT c.category_id, c.name, c.gender, c.weight_class_min, c.weight_class_max\n             FROM categories c\n             JOIN competition_participants cp ON c.category_id = cp.category_id\n             WHERE cp.competition_id = $1",
   "describe": {
     "columns": [
       {
@@ -42,5 +42,5 @@
       true
     ]
   },
-  "hash": "ad51251b4892b3f49688b83b70ce689d1016e73162615ab561c02dadfae9d69e"
+  "hash": "b10fbfeab89923869bd0eb5886f2816a5341b4f13c6b50d26434f4f4425c29b7"
 }

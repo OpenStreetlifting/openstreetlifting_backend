@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                c.competition_id,\n                c.name as competition_name,\n                c.slug as competition_slug,\n                c.start_date as competition_date,\n                cat.name as category_name,\n                cp.rank,\n                COALESCE(SUM(l.max_weight), 0) as \"total!: Decimal\",\n                cp.ris_score,\n                cp.is_disqualified\n            FROM competition_participants cp\n            JOIN competition_groups cg ON cp.group_id = cg.group_id\n            JOIN competitions c ON cg.competition_id = c.competition_id\n            JOIN categories cat ON cg.category_id = cat.category_id\n            LEFT JOIN lifts l ON l.participant_id = cp.participant_id\n            WHERE cp.athlete_id = $1\n            GROUP BY c.competition_id, c.name, c.slug, c.start_date, cat.name, cp.rank, cp.ris_score, cp.is_disqualified\n            ORDER BY c.start_date DESC NULLS LAST\n            ",
+  "query": "\n            SELECT\n                c.competition_id,\n                c.name as competition_name,\n                c.slug as competition_slug,\n                c.start_date as competition_date,\n                cat.name as category_name,\n                cp.rank,\n                COALESCE(SUM(l.max_weight), 0) as \"total!: Decimal\",\n                cp.ris_score,\n                cp.is_disqualified\n            FROM competition_participants cp\n            JOIN competitions c ON cp.competition_id = c.competition_id\n            JOIN categories cat ON cp.category_id = cat.category_id\n            LEFT JOIN lifts l ON l.participant_id = cp.participant_id\n            WHERE cp.athlete_id = $1\n            GROUP BY c.competition_id, c.name, c.slug, c.start_date, cat.name, cp.rank, cp.ris_score, cp.is_disqualified\n            ORDER BY c.start_date DESC NULLS LAST\n            ",
   "describe": {
     "columns": [
       {
@@ -66,5 +66,5 @@
       false
     ]
   },
-  "hash": "7aca10dc5fbb7f4e3929ba083adf416140de223943af7dcf119cbf7545bf8c79"
+  "hash": "a93bb5a358b28f6b9e9b545bc8a1fa5799b6bc4f31bf5c423e885a5703965dc3"
 }

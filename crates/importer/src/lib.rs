@@ -1,3 +1,4 @@
+pub mod canonical;
 pub mod error;
 pub mod movement_mapper;
 pub mod sources;

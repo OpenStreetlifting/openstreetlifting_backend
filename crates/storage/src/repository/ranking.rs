@@ -110,8 +110,7 @@ impl<'a> RankingRepository<'a> {
                     MAX(rsh.ris_score) as ris_score
                 FROM competition_participants cp
                 INNER JOIN athletes a ON cp.athlete_id = a.athlete_id
-                INNER JOIN competition_groups cg ON cp.group_id = cg.group_id
-                INNER JOIN competitions c ON cg.competition_id = c.competition_id
+                INNER JOIN competitions c ON cp.competition_id = c.competition_id
                 INNER JOIN lifts l ON cp.participant_id = l.participant_id
                 LEFT JOIN ris_scores_history rsh ON rsh.participant_id = cp.participant_id
                 WHERE 1=1
