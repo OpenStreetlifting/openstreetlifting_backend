@@ -1,4 +1,8 @@
-use actix_web::{HttpResponse, error::ResponseError, http::StatusCode};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde_json::json;
 use std::fmt;
 use storage::error::StorageError;
@@ -31,9 +35,9 @@ impl fmt::Display for WebError {
     }
 }
 
-impl ResponseError for WebError {
-    fn status_code(&self) -> StatusCode {
-        match self {
+impl IntoResponse for WebError {
+    fn into_response(self) -> Response {
+        let status_code = match &self {
             Self::Storage(StorageError::NotFound) => StatusCode::NOT_FOUND,
             Self::Storage(StorageError::ConstraintViolation(_)) => StatusCode::CONFLICT,
             Self::Storage(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -42,18 +46,24 @@ impl ResponseError for WebError {
             Self::Unauthorized => StatusCode::UNAUTHORIZED,
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
+        };
 
-    fn error_response(&self) -> HttpResponse {
-        let status_code = self.status_code();
-
-        let error_message = match self {
-            Self::Storage(StorageError::NotFound) => "Resource not found".to_string(),
-            Self::Storage(StorageError::ConstraintViolation(msg)) => msg.clone(),
+        let body = match &self {
+            Self::Storage(StorageError::NotFound) => {
+                json!({
+                    "error": "Resource not found"
+                })
+            }
+            Self::Storage(StorageError::ConstraintViolation(msg)) => {
+                json!({
+                    "error": msg
+                })
+            }
             Self::Storage(e) => {
                 tracing::error!("Storage error: {:?}", e);
-                "An internal error occurred".to_string()
+                json!({
+                    "error": "An internal error occurred"
+                })
             }
             Self::Validation(errors) => {
                 let field_errors: Vec<String> = errors
@@ -73,23 +83,35 @@ impl ResponseError for WebError {
                     })
                     .collect();
 
-                return HttpResponse::build(status_code).json(json!({
+                json!({
                     "error": "Validation failed",
                     "details": field_errors
-                }));
+                })
             }
-            Self::BadRequest(msg) => msg.clone(),
-            Self::Unauthorized => "Unauthorized".to_string(),
-            Self::NotFound => "Resource not found".to_string(),
+            Self::BadRequest(msg) => {
+                json!({
+                    "error": msg
+                })
+            }
+            Self::Unauthorized => {
+                json!({
+                    "error": "Unauthorized"
+                })
+            }
+            Self::NotFound => {
+                json!({
+                    "error": "Resource not found"
+                })
+            }
             Self::InternalServerError(msg) => {
                 tracing::error!("Internal server error: {}", msg);
-                "An internal error occurred".to_string()
+                json!({
+                    "error": "An internal error occurred"
+                })
             }
         };
 
-        HttpResponse::build(status_code).json(json!({
-            "error": error_message
-        }))
+        (status_code, Json(body)).into_response()
     }
 }
 
@@ -106,3 +128,4 @@ impl From<ValidationErrors> for WebError {
 }
 
 pub type WebResult<T> = Result<T, WebError>;
+pub type ApiResult<T> = Result<T, WebError>;

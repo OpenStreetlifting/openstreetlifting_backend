@@ -1,15 +1,21 @@
-use actix_web::{HttpResponse, web};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use storage::{
     Database,
     dto::competition::{
         CompetitionDetailResponse, CompetitionListResponse, CompetitionResponse,
         CreateCompetitionRequest, UpdateCompetitionRequest,
     },
-    repository::competition::CompetitionRepository,
 };
 use validator::Validate;
 
-use crate::error::{WebError, WebResult};
+use crate::error::WebError;
+
+use super::services;
 
 #[utoipa::path(
     get,
@@ -19,16 +25,17 @@ use crate::error::{WebError, WebResult};
     ),
     tag = "competitions"
 )]
-pub async fn list_competitions(db: web::Data<Database>) -> WebResult<HttpResponse> {
-    let repo = CompetitionRepository::new(db.pool());
-    let competitions = repo.list().await?;
+pub async fn list_competitions(
+    State(db): State<Database>,
+) -> Result<Json<Vec<CompetitionResponse>>, WebError> {
+    let competitions = services::list_competitions(db.pool()).await?;
 
     let response: Vec<CompetitionResponse> = competitions
         .into_iter()
         .map(CompetitionResponse::from)
         .collect();
 
-    Ok(HttpResponse::Ok().json(response))
+    Ok(Json(response))
 }
 
 #[utoipa::path(
@@ -39,11 +46,12 @@ pub async fn list_competitions(db: web::Data<Database>) -> WebResult<HttpRespons
     ),
     tag = "competitions"
 )]
-pub async fn list_competitions_detailed(db: web::Data<Database>) -> WebResult<HttpResponse> {
-    let repo = CompetitionRepository::new(db.pool());
-    let competitions = repo.list_with_details().await?;
+pub async fn list_competitions_detailed(
+    State(db): State<Database>,
+) -> Result<Response, WebError> {
+    let competitions = services::list_competitions_detailed(db.pool()).await?;
 
-    Ok(HttpResponse::Ok().json(competitions))
+    Ok(Json(competitions).into_response())
 }
 
 #[utoipa::path(
@@ -59,14 +67,12 @@ pub async fn list_competitions_detailed(db: web::Data<Database>) -> WebResult<Ht
     tag = "competitions"
 )]
 pub async fn get_competition(
-    db: web::Data<Database>,
-    path: web::Path<String>,
-) -> WebResult<HttpResponse> {
-    let slug = path.into_inner();
-    let repo = CompetitionRepository::new(db.pool());
-    let competition = repo.find_by_slug(&slug).await?;
+    State(db): State<Database>,
+    Path(slug): Path<String>,
+) -> Result<Response, WebError> {
+    let competition = services::get_competition_by_slug(db.pool(), &slug).await?;
 
-    Ok(HttpResponse::Ok().json(CompetitionResponse::from(competition)))
+    Ok(Json(CompetitionResponse::from(competition)).into_response())
 }
 
 #[utoipa::path(
@@ -82,14 +88,12 @@ pub async fn get_competition(
     tag = "competitions"
 )]
 pub async fn get_competition_detailed(
-    db: web::Data<Database>,
-    path: web::Path<String>,
-) -> WebResult<HttpResponse> {
-    let slug = path.into_inner();
-    let repo = CompetitionRepository::new(db.pool());
-    let competition = repo.find_by_slug_detailed(&slug).await?;
+    State(db): State<Database>,
+    Path(slug): Path<String>,
+) -> Result<Response, WebError> {
+    let competition = services::get_competition_detailed(db.pool(), &slug).await?;
 
-    Ok(HttpResponse::Ok().json(competition))
+    Ok(Json(competition).into_response())
 }
 
 #[utoipa::path(
@@ -108,20 +112,17 @@ pub async fn get_competition_detailed(
     tag = "competitions"
 )]
 pub async fn create_competition(
-    db: web::Data<Database>,
-    payload: web::Json<CreateCompetitionRequest>,
-) -> WebResult<HttpResponse> {
-    let req = payload.into_inner();
-
+    State(db): State<Database>,
+    Json(req): Json<CreateCompetitionRequest>,
+) -> Result<Response, WebError> {
     req.validate()?;
 
     req.validate_dates()
         .map_err(|e| WebError::BadRequest(e.to_string()))?;
 
-    let repo = CompetitionRepository::new(db.pool());
-    let competition = repo.create(&req).await?;
+    let competition = services::create_competition(db.pool(), &req).await?;
 
-    Ok(HttpResponse::Created().json(CompetitionResponse::from(competition)))
+    Ok((StatusCode::CREATED, Json(CompetitionResponse::from(competition))).into_response())
 }
 
 #[utoipa::path(
@@ -144,24 +145,15 @@ pub async fn create_competition(
     tag = "competitions"
 )]
 pub async fn update_competition(
-    db: web::Data<Database>,
-    path: web::Path<String>,
-    payload: web::Json<UpdateCompetitionRequest>,
-) -> WebResult<HttpResponse> {
-    let slug = path.into_inner();
-    let update_req = payload.into_inner();
-
+    State(db): State<Database>,
+    Path(slug): Path<String>,
+    Json(update_req): Json<UpdateCompetitionRequest>,
+) -> Result<Response, WebError> {
     update_req.validate()?;
 
-    let repo = CompetitionRepository::new(db.pool());
+    let updated = services::update_competition(db.pool(), &slug, &update_req).await?;
 
-    let existing = repo.find_by_slug(&slug).await?;
-
-    let updated = repo
-        .update(existing.competition_id, &existing, &update_req)
-        .await?;
-
-    Ok(HttpResponse::Ok().json(CompetitionResponse::from(updated)))
+    Ok(Json(CompetitionResponse::from(updated)).into_response())
 }
 
 #[utoipa::path(
@@ -181,13 +173,10 @@ pub async fn update_competition(
     tag = "competitions"
 )]
 pub async fn delete_competition(
-    db: web::Data<Database>,
-    path: web::Path<String>,
-) -> WebResult<HttpResponse> {
-    let slug = path.into_inner();
-    let repo = CompetitionRepository::new(db.pool());
-    let competition = repo.find_by_slug(&slug).await?;
-    repo.delete(competition.competition_id).await?;
+    State(db): State<Database>,
+    Path(slug): Path<String>,
+) -> Result<Response, WebError> {
+    services::delete_competition(db.pool(), &slug).await?;
 
-    Ok(HttpResponse::NoContent().finish())
+    Ok(StatusCode::NO_CONTENT.into_response())
 }

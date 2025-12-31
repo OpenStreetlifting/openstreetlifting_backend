@@ -8,6 +8,7 @@ pub mod services;
 
 use error::Result;
 
+#[derive(Clone)]
 pub struct Database {
     pool: PgPool,
 }

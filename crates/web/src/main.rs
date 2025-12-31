@@ -1,15 +1,14 @@
-use actix_cors::Cors;
-use actix_web::{App, HttpServer, web};
 use anyhow::Context;
+use axum::Router;
 use storage::Database;
+use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 mod config;
 mod error;
-mod handlers;
+mod features;
 mod middleware;
-mod routes;
 
 use config::Config;
 use middleware::auth::ApiKeys;
@@ -17,20 +16,20 @@ use middleware::auth::ApiKeys;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        handlers::competitions::list_competitions,
-        handlers::competitions::list_competitions_detailed,
-        handlers::competitions::get_competition,
-        handlers::competitions::get_competition_detailed,
-        handlers::competitions::create_competition,
-        handlers::competitions::update_competition,
-        handlers::competitions::delete_competition,
-        handlers::athletes::list_athletes,
-        handlers::athletes::get_athlete,
-        handlers::athletes::get_athlete_detailed,
-        handlers::athletes::create_athlete,
-        handlers::athletes::update_athlete,
-        handlers::athletes::delete_athlete,
-        handlers::ranking::get_global_ranking,
+        features::competitions::handlers::list_competitions,
+        features::competitions::handlers::list_competitions_detailed,
+        features::competitions::handlers::get_competition,
+        features::competitions::handlers::get_competition_detailed,
+        features::competitions::handlers::create_competition,
+        features::competitions::handlers::update_competition,
+        features::competitions::handlers::delete_competition,
+        features::athletes::handlers::list_athletes,
+        features::athletes::handlers::get_athlete,
+        features::athletes::handlers::get_athlete_detailed,
+        features::athletes::handlers::create_athlete,
+        features::athletes::handlers::update_athlete,
+        features::athletes::handlers::delete_athlete,
+        features::ranking::handlers::get_global_ranking,
     ),
     components(
         schemas(
@@ -130,8 +129,7 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed to run migrations")?;
     tracing::info!("Database migrations completed successfully");
 
-    let db_data = web::Data::new(db);
-    let api_keys = web::Data::new(ApiKeys::from_comma_separated(&config.api_keys));
+    let api_keys = ApiKeys::from_comma_separated(&config.api_keys);
 
     let bind_address = format!("{}:{}", config.host, config.port);
     tracing::info!("Starting server at http://{}", bind_address);
@@ -143,26 +141,33 @@ async fn main() -> anyhow::Result<()> {
 
     let openapi = ApiDoc::openapi();
 
-    HttpServer::new(move || {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .supports_credentials()
-            .max_age(3600);
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any)
+        .allow_credentials(true)
+        .max_age(std::time::Duration::from_secs(3600));
 
-        App::new()
-            .wrap(cors)
-            .app_data(db_data.clone())
-            .app_data(api_keys.clone())
-            .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
-            )
-            .configure(routes::configure)
-    })
-    .bind(&bind_address)?
-    .run()
-    .await?;
+    let app = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi))
+        .nest("/api/competitions", features::competitions::routes(api_keys.clone()))
+        .nest("/api/athletes", features::athletes::routes(api_keys.clone()))
+        .nest("/api/rankings", features::ranking::routes())
+        .nest("/api/ris", features::ris::routes(api_keys.clone()))
+        .nest("/participants", features::ris::participant_routes())
+        .nest("/admin/ris", features::ris::admin_routes())
+        .layer(cors)
+        .with_state(db);
+
+    let listener = tokio::net::TcpListener::bind(&bind_address)
+        .await
+        .context("Failed to bind to address")?;
+
+    tracing::info!("Server listening on {}", bind_address);
+
+    axum::serve(listener, app)
+        .await
+        .context("Server error")?;
 
     Ok(())
 }

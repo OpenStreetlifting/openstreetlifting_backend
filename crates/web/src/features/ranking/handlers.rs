@@ -1,14 +1,19 @@
-use actix_web::{HttpResponse, web};
+use axum::{
+    extract::{Query, State},
+    response::{IntoResponse, Response},
+    Json,
+};
 use storage::{
     Database,
     dto::{
         common::PaginatedResponse,
         ranking::{GlobalRankingEntry, GlobalRankingFilter},
     },
-    repository::ranking::RankingRepository,
 };
 
-use crate::error::{WebError, WebResult};
+use crate::error::WebError;
+
+use super::services;
 
 #[utoipa::path(
     get,
@@ -21,15 +26,12 @@ use crate::error::{WebError, WebResult};
     tag = "rankings"
 )]
 pub async fn get_global_ranking(
-    db: web::Data<Database>,
-    query: web::Query<GlobalRankingFilter>,
-) -> WebResult<HttpResponse> {
-    let filter = query.into_inner();
-
+    State(db): State<Database>,
+    Query(filter): Query<GlobalRankingFilter>,
+) -> Result<Response, WebError> {
     filter.validate().map_err(WebError::BadRequest)?;
 
-    let repo = RankingRepository::new(db.pool());
-    let (entries, total_items) = repo.get_global_ranking(&filter).await?;
+    let (entries, total_items) = services::get_global_ranking(db.pool(), &filter).await?;
 
     let response = PaginatedResponse::new(
         entries,
@@ -38,5 +40,5 @@ pub async fn get_global_ranking(
         total_items,
     );
 
-    Ok(HttpResponse::Ok().json(response))
+    Ok(Json(response).into_response())
 }
