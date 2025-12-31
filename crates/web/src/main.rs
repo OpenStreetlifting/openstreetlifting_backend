@@ -150,8 +150,14 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi))
-        .nest("/api/competitions", features::competitions::routes(api_keys.clone()))
-        .nest("/api/athletes", features::athletes::routes(api_keys.clone()))
+        .nest(
+            "/api/competitions",
+            features::competitions::routes(api_keys.clone()),
+        )
+        .nest(
+            "/api/athletes",
+            features::athletes::routes(api_keys.clone()),
+        )
         .nest("/api/rankings", features::ranking::routes())
         .nest("/api/ris", features::ris::routes(api_keys.clone()))
         .nest("/participants", features::ris::participant_routes())
@@ -165,9 +171,7 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Server listening on {}", bind_address);
 
-    axum::serve(listener, app)
-        .await
-        .context("Server error")?;
+    axum::serve(listener, app).await.context("Server error")?;
 
     Ok(())
 }

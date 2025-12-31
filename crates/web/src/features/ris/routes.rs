@@ -1,6 +1,6 @@
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use storage::Database;
 
@@ -19,7 +19,10 @@ pub fn routes(_api_keys: ApiKeys) -> Router<Database> {
 }
 
 pub fn participant_routes() -> Router<Database> {
-    Router::new().route("/:participant_id/ris-history", get(get_participant_ris_history))
+    Router::new().route(
+        "/:participant_id/ris-history",
+        get(get_participant_ris_history),
+    )
 }
 
 pub fn admin_routes() -> Router<Database> {

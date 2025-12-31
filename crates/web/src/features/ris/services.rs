@@ -1,11 +1,8 @@
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use storage::{
-    dto::ris::RisFormulaResponse,
-    error::Result,
-    models::RisScoreHistory,
-    repository::ris::RisRepository,
-    services::ris_computation,
+    dto::ris::RisFormulaResponse, error::Result, models::RisScoreHistory,
+    repository::ris::RisRepository, services::ris_computation,
 };
 use uuid::Uuid;
 
@@ -45,8 +42,10 @@ pub async fn get_participant_ris_history(
     let history = repo.get_participant_ris_history(participant_id).await?;
 
     let formulas = repo.list_all_formulas().await?;
-    let formula_map: std::collections::HashMap<Uuid, i32> =
-        formulas.into_iter().map(|f| (f.formula_id, f.year)).collect();
+    let formula_map: std::collections::HashMap<Uuid, i32> = formulas
+        .into_iter()
+        .map(|f| (f.formula_id, f.year))
+        .collect();
 
     Ok((history, formula_map))
 }

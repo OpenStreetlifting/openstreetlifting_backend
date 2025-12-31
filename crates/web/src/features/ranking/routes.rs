@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use storage::Database;
 
 use super::handlers::get_global_ranking;

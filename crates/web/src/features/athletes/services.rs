@@ -1,8 +1,6 @@
 use sqlx::PgPool;
 use storage::{
-    dto::athlete::{
-        AthleteDetailResponse, CreateAthleteRequest, UpdateAthleteRequest,
-    },
+    dto::athlete::{AthleteDetailResponse, CreateAthleteRequest, UpdateAthleteRequest},
     error::Result,
     models::Athlete,
     repository::athlete::AthleteRepository,

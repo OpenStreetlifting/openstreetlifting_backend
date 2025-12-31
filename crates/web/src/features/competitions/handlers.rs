@@ -1,8 +1,8 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use storage::{
     Database,
@@ -46,9 +46,7 @@ pub async fn list_competitions(
     ),
     tag = "competitions"
 )]
-pub async fn list_competitions_detailed(
-    State(db): State<Database>,
-) -> Result<Response, WebError> {
+pub async fn list_competitions_detailed(State(db): State<Database>) -> Result<Response, WebError> {
     let competitions = services::list_competitions_detailed(db.pool()).await?;
 
     Ok(Json(competitions).into_response())
@@ -122,7 +120,11 @@ pub async fn create_competition(
 
     let competition = services::create_competition(db.pool(), &req).await?;
 
-    Ok((StatusCode::CREATED, Json(CompetitionResponse::from(competition))).into_response())
+    Ok((
+        StatusCode::CREATED,
+        Json(CompetitionResponse::from(competition)),
+    )
+        .into_response())
 }
 
 #[utoipa::path(

@@ -1,7 +1,6 @@
 use axum::{
-    middleware,
+    Router, middleware,
     routing::{delete, get, post, put},
-    Router,
 };
 use storage::Database;
 
@@ -9,7 +8,7 @@ use super::handlers::{
     create_athlete, delete_athlete, get_athlete, get_athlete_detailed, list_athletes,
     update_athlete,
 };
-use crate::middleware::auth::{require_auth, ApiKeys};
+use crate::middleware::auth::{ApiKeys, require_auth};
 
 pub fn routes(api_keys: ApiKeys) -> Router<Database> {
     let protected = Router::new()

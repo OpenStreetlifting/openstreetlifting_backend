@@ -1,7 +1,6 @@
 use axum::{
-    middleware,
+    Router, middleware,
     routing::{delete, get, post, put},
-    Router,
 };
 use storage::Database;
 
@@ -9,7 +8,7 @@ use super::handlers::{
     create_competition, delete_competition, get_competition, get_competition_detailed,
     list_competitions, list_competitions_detailed, update_competition,
 };
-use crate::middleware::auth::{require_auth, ApiKeys};
+use crate::middleware::auth::{ApiKeys, require_auth};
 
 pub fn routes(api_keys: ApiKeys) -> Router<Database> {
     let protected = Router::new()
