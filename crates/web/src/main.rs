@@ -159,7 +159,7 @@ async fn main() -> anyhow::Result<()> {
             features::athletes::routes(api_keys.clone()),
         )
         .nest("/api/rankings", features::ranking::routes())
-        .nest("/api/ris", features::ris::routes(api_keys.clone()))
+        .nest("/api/ris", features::ris::routes())
         .nest("/participants", features::ris::participant_routes())
         .nest("/admin/ris", features::ris::admin_routes())
         .layer(cors)

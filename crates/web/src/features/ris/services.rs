@@ -1,12 +1,39 @@
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use storage::{
-    dto::ris::RisFormulaResponse, error::Result, models::RisScoreHistory,
-    repository::ris::RisRepository, services::ris_computation,
+    dto::ris::{GenderConstants, RisConstants, RisFormulaResponse},
+    error::Result,
+    models::{RisFormulaVersion, RisScoreHistory},
+    repository::ris::RisRepository,
+    services::ris_computation,
 };
 use uuid::Uuid;
 
-use super::handlers::formula_to_response;
+pub fn formula_to_response(formula: &RisFormulaVersion) -> RisFormulaResponse {
+    RisFormulaResponse {
+        formula_id: formula.formula_id,
+        year: formula.year,
+        is_current: formula.is_current,
+        effective_from: formula.effective_from,
+        effective_until: formula.effective_until,
+        constants: RisConstants {
+            men: GenderConstants {
+                a: formula.men_a,
+                k: formula.men_k,
+                b: formula.men_b,
+                v: formula.men_v,
+                q: formula.men_q,
+            },
+            women: GenderConstants {
+                a: formula.women_a,
+                k: formula.women_k,
+                b: formula.women_b,
+                v: formula.women_v,
+                q: formula.women_q,
+            },
+        },
+    }
+}
 
 /// List all RIS formula versions
 pub async fn list_ris_formulas(pool: &PgPool) -> Result<Vec<RisFormulaResponse>> {

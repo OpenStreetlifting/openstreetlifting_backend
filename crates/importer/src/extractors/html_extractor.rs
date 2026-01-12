@@ -3,9 +3,38 @@ use crate::error::ImporterError;
 use crate::extractors::{
     ollama_client::OllamaClient, preprocessor::Preprocessor, prompts::PromptBuilder,
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 type Result<T> = std::result::Result<T, ImporterError>;
+
+const DEFAULT_OLLAMA_URL: &str = "http://localhost:11434";
+const DEFAULT_TEXT_MODEL: &str = "qwen2.5:7b";
+const DEFAULT_VISION_MODEL: &str = "llava:7b";
+const DEFAULT_MAX_TOKENS: usize = 16000;
+
+async fn save_canonical(
+    canonical: &CanonicalFormat,
+    output_dir: &Path,
+    source_suffix: &str,
+) -> Result<PathBuf> {
+    let competition_dir = output_dir.join(&canonical.competition.slug);
+    tokio::fs::create_dir_all(&competition_dir).await?;
+
+    let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S");
+    let filename = format!("{}_{}.json", timestamp, source_suffix);
+    let filepath = competition_dir.join(&filename);
+
+    let json = serde_json::to_string_pretty(canonical)?;
+    tokio::fs::write(&filepath, json).await?;
+
+    tracing::info!("Saved to: {}", filepath.display());
+    Ok(filepath)
+}
+
+fn parse_llm_response(json_response: &str) -> Result<CanonicalFormat> {
+    serde_json::from_str(json_response)
+        .map_err(|e| ImporterError::ExtractionError(format!("Invalid JSON from LLM: {}", e)))
+}
 
 pub struct HtmlExtractor {
     ollama: OllamaClient,
@@ -16,7 +45,7 @@ impl HtmlExtractor {
     pub fn new(ollama_url: String, model: String) -> Self {
         Self {
             ollama: OllamaClient::new(ollama_url, model),
-            max_tokens: 16000,
+            max_tokens: DEFAULT_MAX_TOKENS,
         }
     }
 
@@ -37,41 +66,20 @@ impl HtmlExtractor {
             .generate_json(&system_prompt, &user_prompt, None)
             .await?;
 
-        let canonical: CanonicalFormat = serde_json::from_str(&json_response)
-            .map_err(|e| ImporterError::ExtractionError(format!("Invalid JSON from LLM: {}", e)))?;
-
+        let canonical = parse_llm_response(&json_response)?;
         tracing::info!("Extraction complete: {}", canonical.competition.name);
         Ok(canonical)
     }
 
-    pub async fn extract_and_save(
-        &self,
-        url: &str,
-        output_dir: &Path,
-    ) -> Result<std::path::PathBuf> {
+    pub async fn extract_and_save(&self, url: &str, output_dir: &Path) -> Result<PathBuf> {
         let canonical = self.extract_from_url(url).await?;
-
-        let competition_dir = output_dir.join(&canonical.competition.slug);
-        tokio::fs::create_dir_all(&competition_dir).await?;
-
-        let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S");
-        let filename = format!("{}_html.json", timestamp);
-        let filepath = competition_dir.join(&filename);
-
-        let json = serde_json::to_string_pretty(&canonical)?;
-        tokio::fs::write(&filepath, json).await?;
-
-        tracing::info!("Saved to: {}", filepath.display());
-        Ok(filepath)
+        save_canonical(&canonical, output_dir, "html").await
     }
 }
 
 impl Default for HtmlExtractor {
     fn default() -> Self {
-        Self::new(
-            "http://localhost:11434".to_string(),
-            "qwen2.5:7b".to_string(),
-        )
+        Self::new(DEFAULT_OLLAMA_URL.to_string(), DEFAULT_TEXT_MODEL.to_string())
     }
 }
 
@@ -84,7 +92,7 @@ impl CsvExtractor {
     pub fn new(ollama_url: String, model: String) -> Self {
         Self {
             ollama: OllamaClient::new(ollama_url, model),
-            max_tokens: 16000,
+            max_tokens: DEFAULT_MAX_TOKENS,
         }
     }
 
@@ -105,41 +113,20 @@ impl CsvExtractor {
             .generate_json(&system_prompt, &user_prompt, None)
             .await?;
 
-        let canonical: CanonicalFormat = serde_json::from_str(&json_response)
-            .map_err(|e| ImporterError::ExtractionError(format!("Invalid JSON from LLM: {}", e)))?;
-
+        let canonical = parse_llm_response(&json_response)?;
         tracing::info!("Extraction complete: {}", canonical.competition.name);
         Ok(canonical)
     }
 
-    pub async fn extract_and_save(
-        &self,
-        path: &str,
-        output_dir: &Path,
-    ) -> Result<std::path::PathBuf> {
+    pub async fn extract_and_save(&self, path: &str, output_dir: &Path) -> Result<PathBuf> {
         let canonical = self.extract_from_file(path).await?;
-
-        let competition_dir = output_dir.join(&canonical.competition.slug);
-        tokio::fs::create_dir_all(&competition_dir).await?;
-
-        let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S");
-        let filename = format!("{}_csv.json", timestamp);
-        let filepath = competition_dir.join(&filename);
-
-        let json = serde_json::to_string_pretty(&canonical)?;
-        tokio::fs::write(&filepath, json).await?;
-
-        tracing::info!("Saved to: {}", filepath.display());
-        Ok(filepath)
+        save_canonical(&canonical, output_dir, "csv").await
     }
 }
 
 impl Default for CsvExtractor {
     fn default() -> Self {
-        Self::new(
-            "http://localhost:11434".to_string(),
-            "qwen2.5:7b".to_string(),
-        )
+        Self::new(DEFAULT_OLLAMA_URL.to_string(), DEFAULT_TEXT_MODEL.to_string())
     }
 }
 
@@ -175,9 +162,7 @@ impl ImageExtractor {
             .generate_json_from_image(&system_prompt, &user_prompt, image_base64, None)
             .await?;
 
-        let canonical: CanonicalFormat = serde_json::from_str(&json_response)
-            .map_err(|e| ImporterError::ExtractionError(format!("Invalid JSON from LLM: {}", e)))?;
-
+        let canonical = parse_llm_response(&json_response)?;
         tracing::info!("Extraction complete: {}", canonical.competition.name);
         Ok(canonical)
     }
@@ -187,30 +172,21 @@ impl ImageExtractor {
         source: &str,
         output_dir: &Path,
         is_url: bool,
-    ) -> Result<std::path::PathBuf> {
+    ) -> Result<PathBuf> {
         let canonical = if is_url {
             self.extract_from_url(source).await?
         } else {
             self.extract_from_file(source).await?
         };
-
-        let competition_dir = output_dir.join(&canonical.competition.slug);
-        tokio::fs::create_dir_all(&competition_dir).await?;
-
-        let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S");
-        let filename = format!("{}_image.json", timestamp);
-        let filepath = competition_dir.join(&filename);
-
-        let json = serde_json::to_string_pretty(&canonical)?;
-        tokio::fs::write(&filepath, json).await?;
-
-        tracing::info!("Saved to: {}", filepath.display());
-        Ok(filepath)
+        save_canonical(&canonical, output_dir, "image").await
     }
 }
 
 impl Default for ImageExtractor {
     fn default() -> Self {
-        Self::new("http://localhost:11434".to_string(), "llava:7b".to_string())
+        Self::new(
+            DEFAULT_OLLAMA_URL.to_string(),
+            DEFAULT_VISION_MODEL.to_string(),
+        )
     }
 }

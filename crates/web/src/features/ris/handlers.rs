@@ -5,11 +5,7 @@ use axum::{
 };
 use storage::{
     Database,
-    dto::ris::{
-        ComputeRisRequest, ComputeRisResponse, GenderConstants, RisConstants, RisFormulaResponse,
-        RisScoreResponse,
-    },
-    models::RisFormulaVersion,
+    dto::ris::{ComputeRisRequest, ComputeRisResponse, RisFormulaResponse, RisScoreResponse},
 };
 use uuid::Uuid;
 use validator::Validate;
@@ -150,30 +146,4 @@ pub async fn recompute_all_ris(State(db): State<Database>) -> Result<Response, W
         "message": format!("Successfully recomputed RIS for {} participants", count)
     }))
     .into_response())
-}
-
-pub fn formula_to_response(formula: &RisFormulaVersion) -> RisFormulaResponse {
-    RisFormulaResponse {
-        formula_id: formula.formula_id,
-        year: formula.year,
-        is_current: formula.is_current,
-        effective_from: formula.effective_from,
-        effective_until: formula.effective_until,
-        constants: RisConstants {
-            men: GenderConstants {
-                a: formula.men_a,
-                k: formula.men_k,
-                b: formula.men_b,
-                v: formula.men_v,
-                q: formula.men_q,
-            },
-            women: GenderConstants {
-                a: formula.women_a,
-                k: formula.women_k,
-                b: formula.women_b,
-                v: formula.women_v,
-                q: formula.women_q,
-            },
-        },
-    }
 }

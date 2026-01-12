@@ -1,28 +1,40 @@
 use crate::error::ImporterError;
+use std::time::Duration;
 
 type Result<T> = std::result::Result<T, ImporterError>;
+
+const HTTP_TIMEOUT_SECS: u64 = 30;
+const USER_AGENT: &str = "OpenStreetLifting Importer/1.0";
+
+fn build_http_client() -> Result<reqwest::Client> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
+        .user_agent(USER_AGENT)
+        .build()
+        .map_err(|e| ImporterError::ExtractionError(format!("HTTP client error: {}", e)))
+}
+
+fn check_response_status(response: &reqwest::Response, url: &str) -> Result<()> {
+    if response.status().is_success() {
+        Ok(())
+    } else {
+        Err(ImporterError::ExtractionError(format!(
+            "HTTP error {}: {}",
+            response.status(),
+            url
+        )))
+    }
+}
 
 pub struct Preprocessor;
 
 impl Preprocessor {
     pub async fn fetch_html(url: &str) -> Result<String> {
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .user_agent("OpenStreetLifting Importer/1.0")
-            .build()
-            .map_err(|e| ImporterError::ExtractionError(format!("HTTP client error: {}", e)))?;
-
         tracing::info!("Fetching HTML from: {}", url);
 
+        let client = build_http_client()?;
         let response = client.get(url).send().await?;
-
-        if !response.status().is_success() {
-            return Err(ImporterError::ExtractionError(format!(
-                "HTTP error {}: {}",
-                response.status(),
-                url
-            )));
-        }
+        check_response_status(&response, url)?;
 
         let html = response.text().await?;
         tracing::info!("Fetched {} bytes of HTML", html.len());
@@ -48,23 +60,11 @@ impl Preprocessor {
     }
 
     pub async fn fetch_image_as_base64(url: &str) -> Result<String> {
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .user_agent("OpenStreetLifting Importer/1.0")
-            .build()
-            .map_err(|e| ImporterError::ExtractionError(format!("HTTP client error: {}", e)))?;
-
         tracing::info!("Fetching image from: {}", url);
 
+        let client = build_http_client()?;
         let response = client.get(url).send().await?;
-
-        if !response.status().is_success() {
-            return Err(ImporterError::ExtractionError(format!(
-                "HTTP error {}: {}",
-                response.status(),
-                url
-            )));
-        }
+        check_response_status(&response, url)?;
 
         let bytes = response.bytes().await?;
         let base64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);

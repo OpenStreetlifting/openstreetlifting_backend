@@ -8,9 +8,8 @@ use super::handlers::{
     compute_ris, get_current_formula, get_formula_by_year, get_participant_ris_history,
     list_ris_formulas, recompute_all_ris,
 };
-use crate::middleware::auth::ApiKeys;
 
-pub fn routes(_api_keys: ApiKeys) -> Router<Database> {
+pub fn routes() -> Router<Database> {
     Router::new()
         .route("/formulas", get(list_ris_formulas))
         .route("/formulas/current", get(get_current_formula))
